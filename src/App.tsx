@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import OptionsCalculator from './components/OptionsCalculator/OptionsCalculator';
+import MarketOverview from './components/Home/MarketOverview';
 
 type Tab = 'home' | 'sector' | 'ticker' | 'options';
 
@@ -22,7 +23,7 @@ function ComingSoon({ icon, title, desc }: { icon: string; title: string; desc: 
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('options');
+  const [activeTab, setActiveTab] = useState<Tab>('home');
 
   return (
     <>
@@ -50,13 +51,7 @@ export default function App() {
       </header>
 
       <main className="main-content">
-        {activeTab === 'home' && (
-          <ComingSoon
-            icon="◈"
-            title="Market Overview"
-            desc="Live market dashboard — indices, top movers, news, macro indicators. Updated on every app open."
-          />
-        )}
+        {activeTab === 'home' && <MarketOverview />}
         {activeTab === 'sector' && (
           <ComingSoon
             icon="⬡"
