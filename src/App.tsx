@@ -1,18 +1,28 @@
 import { useState } from 'react';
-import SpreadAnalysis from './components/SpreadAnalysis/SpreadAnalysis';
-import ExpectedMove from './components/ExpectedMove/ExpectedMove';
-import KellyCriterion from './components/KellyCriterion/KellyCriterion';
+import OptionsCalculator from './components/OptionsCalculator/OptionsCalculator';
 
-type Tab = 'spread' | 'expected' | 'kelly';
+type Tab = 'home' | 'sector' | 'ticker' | 'options';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'spread',   label: 'Spread Analysis', icon: '⊿' },
-  { id: 'expected', label: 'Expected Move',    icon: '↔' },
-  { id: 'kelly',    label: 'Position Sizing',  icon: '%' },
+  { id: 'home',    label: 'Market',   icon: '◈' },
+  { id: 'sector',  label: 'Sectors',  icon: '⬡' },
+  { id: 'ticker',  label: 'Research', icon: '⌕' },
+  { id: 'options', label: 'Options',  icon: 'Δ' },
 ];
 
+function ComingSoon({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+  return (
+    <div className="coming-soon">
+      <div className="coming-soon-icon">{icon}</div>
+      <div className="coming-soon-title">{title}</div>
+      <div className="coming-soon-desc">{desc}</div>
+      <div className="coming-soon-badge">Coming in Phase {title === 'Market Overview' ? '3' : title === 'Sector Research' ? '4' : '5'}</div>
+    </div>
+  );
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('spread');
+  const [activeTab, setActiveTab] = useState<Tab>('options');
 
   return (
     <>
@@ -21,7 +31,7 @@ export default function App() {
           <div className="logo">Δ</div>
           <div>
             <div className="header-title">Options Trade Analyzer</div>
-            <div className="header-subtitle">Pre-Trade Decision Tool</div>
+            <div className="header-subtitle">Market Research & Analysis</div>
           </div>
         </div>
 
@@ -40,9 +50,28 @@ export default function App() {
       </header>
 
       <main className="main-content">
-        {activeTab === 'spread'   && <SpreadAnalysis />}
-        {activeTab === 'expected' && <ExpectedMove />}
-        {activeTab === 'kelly'    && <KellyCriterion />}
+        {activeTab === 'home' && (
+          <ComingSoon
+            icon="◈"
+            title="Market Overview"
+            desc="Live market dashboard — indices, top movers, news, macro indicators. Updated on every app open."
+          />
+        )}
+        {activeTab === 'sector' && (
+          <ComingSoon
+            icon="⬡"
+            title="Sector Research"
+            desc="Sector dropdown with momentum analysis, news, and risk/opportunity ratings."
+          />
+        )}
+        {activeTab === 'ticker' && (
+          <ComingSoon
+            icon="⌕"
+            title="Ticker Research"
+            desc="Search any symbol for price charts, technical analysis, options chain, and trade recommendations."
+          />
+        )}
+        {activeTab === 'options' && <OptionsCalculator />}
       </main>
     </>
   );

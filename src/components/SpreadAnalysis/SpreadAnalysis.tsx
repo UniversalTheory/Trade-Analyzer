@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import type { SpreadInputs, SpreadType } from '../../utils/types';
 import { calcSpread } from '../../utils/spreadCalculations';
+import { generatePLData } from '../../utils/plChart';
+import type { SpreadParams } from '../../utils/plChart';
 import ResultCard from '../common/ResultCard';
 import ResultItem from '../common/ResultItem';
 import InterpretationBox from '../common/InterpretationBox';
+import PLChart from '../OptionsCalculator/PLChart';
 
 const LABELS: Record<string, { a: string; b: string; pA: string; pB: string }> = {
   'bull-call': { a: 'Long Call Strike', b: 'Short Call Strike', pA: 'Long Call Premium', pB: 'Short Call Premium' },
@@ -22,6 +25,27 @@ function emptyInputs(): SpreadInputs {
     icLongPut: 0, icShortPut: 0, icShortCall: 0, icLongCall: 0, icCredit: 0,
     contracts: 1, account: 0,
   };
+}
+
+function buildPLParams(inputs: SpreadInputs, result: NonNullable<ReturnType<typeof calcSpread>>): SpreadParams | null {
+  const { type, strikeA, strikeB, premA, premB, icLongPut, icShortPut, icShortCall, icLongCall, icCredit } = inputs;
+  const netDebit = premA - premB; // positive = debit, negative = credit
+
+  switch (type) {
+    case 'bull-call':
+      return { type: 'bull-call', longStrike: strikeA, shortStrike: strikeB, premium: netDebit };
+    case 'bear-put':
+      return { type: 'bear-put', longStrike: strikeA, shortStrike: strikeB, premium: netDebit };
+    case 'bull-put':
+      return { type: 'bull-put', longStrike: strikeB, shortStrike: strikeA, premium: -(premA - premB) };
+    case 'bear-call':
+      return { type: 'bear-call', longStrike: strikeB, shortStrike: strikeA, premium: -(premA - premB) };
+    case 'iron-condor':
+      return { type: 'iron-condor', putLongStrike: icLongPut, putShortStrike: icShortPut, callShortStrike: icShortCall, callLongStrike: icLongCall, netCredit: icCredit };
+    default:
+      return null;
+  }
+  void result; // suppress unused warning
 }
 
 export default function SpreadAnalysis() {
@@ -269,6 +293,18 @@ export default function SpreadAnalysis() {
                 </div>
               </ResultCard>
             )}
+
+            {/* P/L Chart */}
+            {result.stock > 0 && (() => {
+              const plParams = buildPLParams(inputs, result);
+              if (!plParams) return null;
+              const plData = generatePLData(plParams, result.stock);
+              return (
+                <ResultCard title="P/L at Expiration">
+                  <PLChart data={plData} />
+                </ResultCard>
+              );
+            })()}
 
             <InterpretationBox
               verdict={result.verdict}

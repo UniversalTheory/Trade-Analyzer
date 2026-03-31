@@ -84,3 +84,33 @@ export interface KellyResult {
   verdictLabel: string;
   paragraphs: string[];
 }
+
+// Black-Scholes types
+export interface BlackScholesInputs {
+  stockPrice: string;
+  strikePrice: string;
+  daysToExpiry: string;
+  riskFreeRate: string;
+  volatility: string;
+  optionType: 'call' | 'put';
+}
+
+export interface GreeksResult {
+  delta: number;
+  gamma: number;
+  theta: number;
+  vega: number;
+  rho: number;
+}
+
+export interface BlackScholesResult {
+  price: number;
+  intrinsicValue: number;
+  timeValue: number;
+  d1: number;
+  d2: number;
+  greeks: GreeksResult;
+  verdict: VerdictType;
+  verdictLabel: string;
+  paragraphs: string[];
+}
