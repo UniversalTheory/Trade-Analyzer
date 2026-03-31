@@ -90,6 +90,16 @@ export interface SymbolSearchResult {
   exchange: string;
 }
 
+export interface SectorDefinition {
+  id: string;
+  name: string;
+  etf: string;
+  category: 'broad' | 'sub-sector';
+  description: string;
+  topHoldings: string[];
+  newsKeywords: string[];
+}
+
 export interface HealthCheck {
   status: string;
   providers: {

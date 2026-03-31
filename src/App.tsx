@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import OptionsCalculator from './components/OptionsCalculator/OptionsCalculator';
 import MarketOverview from './components/Home/MarketOverview';
+import SectorResearch from './components/Sector/SectorResearch';
 
 type Tab = 'home' | 'sector' | 'ticker' | 'options';
 
@@ -52,13 +53,7 @@ export default function App() {
 
       <main className="main-content">
         {activeTab === 'home' && <MarketOverview />}
-        {activeTab === 'sector' && (
-          <ComingSoon
-            icon="⬡"
-            title="Sector Research"
-            desc="Sector dropdown with momentum analysis, news, and risk/opportunity ratings."
-          />
-        )}
+        {activeTab === 'sector' && <SectorResearch />}
         {activeTab === 'ticker' && (
           <ComingSoon
             icon="⌕"

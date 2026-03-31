@@ -1418,3 +1418,449 @@ body {
   background: rgba(239, 68, 68, 0.12);
 }
 
+
+/* ─────────────────────────────────────────────
+   PHASE 4 — Sector Research
+   ───────────────────────────────────────────── */
+
+.sector-research {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Sector Selector Bar ── */
+.sector-top-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.sector-selector-wrapper {
+  flex: 1;
+  max-width: 420px;
+}
+
+.sector-selector-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.sector-select {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+  transition: border-color 0.15s;
+}
+
+.sector-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.sector-select option,
+.sector-select optgroup {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* ── Content Grid ── */
+.sector-content {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 16px;
+  align-items: start;
+}
+
+.sector-col-left,
+.sector-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Sector Overview Panel ── */
+.sector-overview-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.sector-overview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.sector-overview-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.sector-overview-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.sector-overview-etf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.etf-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(59,130,246,0.12);
+  color: var(--accent-blue);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: 5px;
+  padding: 2px 8px;
+}
+
+.sector-overview-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.sector-overview-price-block {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.sector-price {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.sector-change {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* ── Performance badges ── */
+.perf-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.perf-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 7px 14px;
+  min-width: 56px;
+}
+
+.perf-badge-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.perf-badge-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ── Sector Chart ── */
+.sector-chart {
+  margin-bottom: 14px;
+}
+
+/* ── Top holdings ── */
+.top-holdings {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-primary);
+}
+
+.top-holdings-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+}
+
+.holding-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+
+/* ── Momentum Panel ── */
+.momentum-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.momentum-badges {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.momentum-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid;
+  background: rgba(0,0,0,0.2);
+}
+
+.momentum-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 16px;
+}
+
+.momentum-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.momentum-row:last-child { border-bottom: none; }
+
+.momentum-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.momentum-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.momentum-detail {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.momentum-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.factors-heading {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.factors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.factor-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+}
+
+.factor-positive { background: rgba(34,197,94,0.07);  border-color: rgba(34,197,94,0.15); }
+.factor-negative { background: rgba(239,68,68,0.07);  border-color: rgba(239,68,68,0.15); }
+.factor-neutral  { background: rgba(59,130,246,0.05); border-color: rgba(59,130,246,0.12); }
+
+.factor-icon {
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+.factor-positive .factor-icon { color: var(--color-green); }
+.factor-negative .factor-icon { color: var(--color-red); }
+.factor-neutral  .factor-icon { color: var(--color-blue); }
+
+.factor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.factor-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.factor-detail {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ── Risk / Opportunity Gauge ── */
+.gauge-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.gauge-block {
+  margin-bottom: 18px;
+}
+
+.gauge-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.gauge-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
+}
+
+.gauge-score {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.gauge-max {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.gauge-track {
+  height: 8px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.gauge-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.gauge-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.gauge-verdict {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-top: 4px;
+}
+
+.gauge-verdict-label {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  margin-bottom: 6px;
+}
+
+.gauge-verdict-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.gauge-verdict-sector {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Sector News Panel ── */
+.sector-news-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* Override the nested news-panel border since it's already in a panel */
+.sector-news-panel .news-panel {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+

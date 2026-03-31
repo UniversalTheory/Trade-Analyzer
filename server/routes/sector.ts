@@ -1,7 +1,13 @@
 import { Router } from 'express';
 import { getProvider, cachedCall, TTLCache } from '../services/providerRegistry.js';
+import { SECTORS } from '../data/sectors.js';
 
 const router = Router();
+
+// GET /api/sector/list - All sector definitions (static)
+router.get('/list', (_req, res) => {
+  res.json(SECTORS);
+});
 
 // GET /api/sector/performance - All sector performance data
 router.get('/performance', async (_req, res) => {

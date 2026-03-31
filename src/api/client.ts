@@ -39,6 +39,7 @@ export const market = {
 
 // Sector endpoints
 export const sector = {
+  getList: () => request<import('./types').SectorDefinition[]>('/sector/list'),
   getPerformance: () => request<import('./types').SectorPerformance[]>('/sector/performance'),
   getQuote: (symbol: string) => request<import('./types').QuoteData>(`/sector/${symbol}/quote`),
   getHistory: (symbol: string, range = '3m') =>
