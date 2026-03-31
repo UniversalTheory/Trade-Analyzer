@@ -32,7 +32,7 @@ export default function App() {
         <div className="header-left">
           <div className="logo">Δ</div>
           <div>
-            <div className="header-title">Options Trade Analyzer</div>
+            <div className="header-title">Global Markets Looking Glass</div>
             <div className="header-subtitle">Market Research & Analysis</div>
           </div>
         </div>
