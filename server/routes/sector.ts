@@ -1,6 +1,8 @@
 import { Router } from 'express';
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 import { getProvider, cachedCall, TTLCache } from '../services/providerRegistry.js';
+
+const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 import { SECTORS, ETF_TO_SECTOR } from '../data/sectors.js'; // SECTORS used in /list route
 
 const router = Router();
@@ -74,7 +76,7 @@ router.get('/:etf/movers', async (req, res) => {
         // Try to get holdings from Yahoo's ETF data, fall back to static list
         let symbols: string[] = [];
         try {
-          const summary = await yahooFinance.quoteSummary(etf, { modules: ['topHoldings'] });
+          const summary = await yf.quoteSummary(etf, { modules: ['topHoldings'] });
           const holdings = summary?.topHoldings?.holdings ?? [];
           symbols = holdings
             .map((h: any) => h.symbol)

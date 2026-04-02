@@ -1,6 +1,8 @@
 import { Router } from 'express';
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 import { getProvider, cachedCall, TTLCache } from '../services/providerRegistry.js';
+
+const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 const router = Router();
 
@@ -84,7 +86,7 @@ router.get('/:symbol/profile', async (req, res) => {
       `ticker:profile:${symbol}`,
       TTLCache.TTL.SEARCH, // 1 hour — profile data rarely changes
       async () => {
-        const summary = await yahooFinance.quoteSummary(symbol, {
+        const summary = await yf.quoteSummary(symbol, {
           modules: ['assetProfile', 'summaryProfile', 'fundProfile'] as any,
         });
 
