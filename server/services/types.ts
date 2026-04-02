@@ -96,6 +96,20 @@ export interface MacroData {
   fearGreedIndex?: number;
 }
 
+export interface AssetProfile {
+  symbol: string;
+  description: string;
+  sector?: string;
+  industry?: string;
+  employees?: number;
+  country?: string;
+  website?: string;
+  // ETF-specific
+  fundFamily?: string;
+  fundCategory?: string;
+  legalType?: string;
+}
+
 // Provider interface — all adapters must implement this
 export interface MarketDataProvider {
   name: string;

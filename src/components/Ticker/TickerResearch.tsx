@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
 import { ticker as tickerApi } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
-import type { PriceBar, QuoteData, OptionContract } from '../../api/types';
+import type { PriceBar, QuoteData, OptionContract, AssetProfile } from '../../api/types';
 import SymbolSearch from './SymbolSearch';
 import TickerQuoteCard from './TickerQuoteCard';
+import AssetProfileCard from './AssetProfile';
 import PriceChart from './PriceChart';
 import TechnicalIndicators from './TechnicalIndicators';
 import OptionsChain from './OptionsChain';
@@ -31,6 +32,12 @@ export default function TickerResearch({ onAnalyzeInCalculator }: Props) {
     error: quoteError,
   } = useApi<QuoteData>(
     () => tickerApi.getQuote(symbol),
+    [symbol],
+    { autoFetch: !!symbol },
+  );
+
+  const { data: profile } = useApi<AssetProfile>(
+    () => tickerApi.getProfile(symbol),
     [symbol],
     { autoFetch: !!symbol },
   );
@@ -99,6 +106,8 @@ export default function TickerResearch({ onAnalyzeInCalculator }: Props) {
       {symbol && quote && (
         <div className="ticker-content">
           <TickerQuoteCard quote={quote} />
+
+          {profile && <AssetProfileCard profile={profile} />}
 
           <PriceChart
             bars={bars ?? []}

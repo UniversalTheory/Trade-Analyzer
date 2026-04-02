@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import yahooFinance from 'yahoo-finance2';
 import { getProvider, cachedCall, TTLCache } from '../services/providerRegistry.js';
 
 const router = Router();
@@ -72,6 +73,47 @@ router.get('/:symbol/news', async (req, res) => {
   } catch (err: any) {
     console.error('Ticker news error:', err.message);
     res.status(500).json({ error: 'Failed to fetch news' });
+  }
+});
+
+// GET /api/ticker/:symbol/profile - Asset description, sector, fund info
+router.get('/:symbol/profile', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const data = await cachedCall(
+      `ticker:profile:${symbol}`,
+      TTLCache.TTL.SEARCH, // 1 hour — profile data rarely changes
+      async () => {
+        const summary = await yahooFinance.quoteSummary(symbol, {
+          modules: ['assetProfile', 'summaryProfile', 'fundProfile'] as any,
+        });
+
+        const asset = (summary as any).assetProfile ?? (summary as any).summaryProfile;
+        const fund  = (summary as any).fundProfile;
+
+        const description =
+          asset?.longBusinessSummary ??
+          fund?.longBusinessSummary ??
+          '';
+
+        return {
+          symbol,
+          description,
+          sector:       asset?.sector       ?? undefined,
+          industry:     asset?.industry     ?? undefined,
+          employees:    asset?.fullTimeEmployees ?? undefined,
+          country:      asset?.country      ?? undefined,
+          website:      asset?.website      ?? undefined,
+          fundFamily:   fund?.family        ?? undefined,
+          fundCategory: fund?.categoryName  ?? undefined,
+          legalType:    fund?.legalType     ?? undefined,
+        };
+      },
+    );
+    res.json(data);
+  } catch (err: any) {
+    console.error('Asset profile error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch asset profile' });
   }
 });
 

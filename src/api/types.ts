@@ -100,6 +100,19 @@ export interface SectorDefinition {
   newsKeywords: string[];
 }
 
+export interface AssetProfile {
+  symbol: string;
+  description: string;
+  sector?: string;
+  industry?: string;
+  employees?: number;
+  country?: string;
+  website?: string;
+  fundFamily?: string;
+  fundCategory?: string;
+  legalType?: string;
+}
+
 export interface HealthCheck {
   status: string;
   providers: {
