@@ -67,6 +67,9 @@ export default function MarketNews({ news, compact = false }: Props) {
                 </span>
                 <div className="news-item-body">
                   <div className="news-headline">{item.headline}</div>
+                  {item.summary && (
+                    <div className="news-summary--compact">{item.summary}</div>
+                  )}
                   <div className="news-meta">
                     <span className="news-source">{item.source}</span>
                     <span className="news-time">{timeAgo(item.datetime)}</span>

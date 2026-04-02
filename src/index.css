@@ -1219,7 +1219,7 @@ body {
 .macro-card--news .news-feed--compact {
   flex: 1;
   overflow-y: auto;
-  max-height: 200px;
+  max-height: 280px;
   scrollbar-width: thin;
   scrollbar-color: var(--border-primary) transparent;
   /* Fade hint at bottom */
@@ -1264,8 +1264,19 @@ body {
   text-overflow: ellipsis;
 }
 
+.news-summary--compact {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .news-feed--compact .news-meta {
-  margin-top: 1px;
+  margin-top: 3px;
 }
 
 .macro-card-label {
