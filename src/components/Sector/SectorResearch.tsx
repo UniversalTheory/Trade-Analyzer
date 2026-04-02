@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { sector as sectorApi } from '../../api/client';
+import { sector as sectorApi, market } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import { calcSectorScore } from '../../utils/sectorAnalysis';
-import type { SectorDefinition, QuoteData, PriceBar, NewsItem } from '../../api/types';
+import type { SectorDefinition, QuoteData, PriceBar, NewsItem, MoverData } from '../../api/types';
 import SectorSelector from './SectorSelector';
 import SectorOverview from './SectorOverview';
 import SectorMomentum from './SectorMomentum';
 import RiskOpportunityGauge from './RiskOpportunityGauge';
 import SectorNews from './SectorNews';
+import TopMovers from '../Home/TopMovers';
 import LoadingState from '../common/LoadingState';
 import ErrorState from '../common/ErrorState';
 
@@ -47,6 +48,11 @@ export default function SectorResearch() {
     () => sectorApi.getNews(etf),
     [etf],
     { autoFetch: !!etf },
+  );
+
+  const { data: movers, loading: moversLoading } = useApi<MoverData>(
+    () => market.getMovers(),
+    [],
   );
 
   const isLoading = quoteLoading || historyLoading;
@@ -104,6 +110,12 @@ export default function SectorResearch() {
             ) : score ? (
               <SectorMomentum score={score} />
             ) : null}
+
+            {moversLoading && !movers ? (
+              <div className="panel-card"><LoadingState rows={6} height={36} /></div>
+            ) : (
+              <TopMovers data={movers ?? { gainers: [], losers: [] }} />
+            )}
           </div>
 
           {/* Right column: Gauge + News */}

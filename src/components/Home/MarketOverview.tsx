@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { market } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
-import type { QuoteData, MoverData, NewsItem, SectorPerformance } from '../../api/types';
+import type { QuoteData, NewsItem, SectorPerformance } from '../../api/types';
 import IndexCard from './IndexCard';
 import MacroIndicators from './MacroIndicators';
-import TopMovers from './TopMovers';
-import MarketNews from './MarketNews';
+import GlobalMarketsRow from './GlobalMarketsRow';
 import LoadingState from '../common/LoadingState';
 import ErrorState from '../common/ErrorState';
 
@@ -43,11 +42,6 @@ export default function MarketOverview() {
     [refreshKey, live],
   );
 
-  const movers = useApi<MoverData>(
-    () => market.getMovers(live),
-    [refreshKey, live],
-  );
-
   const news = useApi<NewsItem[]>(
     () => market.getNews(),
     [refreshKey],
@@ -58,8 +52,8 @@ export default function MarketOverview() {
     [refreshKey],
   );
 
-  const isLoading = indices.loading || movers.loading || news.loading || sectors.loading;
-  const hasError = !isLoading && (indices.error || movers.error);
+  const isLoading = indices.loading || news.loading || sectors.loading;
+  const hasError = !isLoading && indices.error;
 
   function handleRefresh() {
     setRefreshKey(k => k + 1);
@@ -122,7 +116,10 @@ export default function MarketOverview() {
         }
       </div>
 
-      {/* Middle Row: Macro + Sectors */}
+      {/* Global Markets Row: Futures | International | Commodities */}
+      <GlobalMarketsRow refreshKey={refreshKey} live={live} />
+
+      {/* Market Conditions: VIX | Tone | Sectors | News */}
       <div className="dashboard-row">
         <div className="dashboard-col-wide">
           {sectors.loading && !sectors.data
@@ -131,23 +128,8 @@ export default function MarketOverview() {
                 vix={vix}
                 sectors={sectors.data ?? []}
                 indices={indices.data ?? []}
+                news={news.data ?? []}
               />
-          }
-        </div>
-      </div>
-
-      {/* Bottom Row: Movers + News */}
-      <div className="dashboard-row">
-        <div className="dashboard-col-half">
-          {movers.loading && !movers.data
-            ? <div className="panel-card"><LoadingState rows={6} height={36} /></div>
-            : <TopMovers data={movers.data ?? { gainers: [], losers: [] }} />
-          }
-        </div>
-        <div className="dashboard-col-half">
-          {news.loading && !news.data
-            ? <div className="panel-card"><LoadingState rows={6} height={52} /></div>
-            : <MarketNews news={news.data ?? []} />
           }
         </div>
       </div>

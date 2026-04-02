@@ -2,6 +2,7 @@ import type { NewsItem } from '../../api/types';
 
 interface Props {
   news: NewsItem[];
+  compact?: boolean;  // condensed scrollable mode for use inside a panel card
 }
 
 const POSITIVE_KEYWORDS = [
@@ -40,7 +41,45 @@ const SENTIMENT_STYLES: Record<string, { color: string; bg: string; label: strin
   neutral:  { color: 'var(--color-blue)',  bg: 'rgba(59,130,246,0.1)', label: '—' },
 };
 
-export default function MarketNews({ news }: Props) {
+export default function MarketNews({ news, compact = false }: Props) {
+  if (compact) {
+    return (
+      <div className="news-feed news-feed--compact">
+        {news.length === 0 ? (
+          <div className="news-empty">No news available</div>
+        ) : (
+          news.map(item => {
+            const sentiment = getSentiment(item);
+            const style = SENTIMENT_STYLES[sentiment];
+            return (
+              <a
+                key={item.id}
+                className="news-item news-item--compact"
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span
+                  className="news-sentiment-dot"
+                  style={{ color: style.color, background: style.bg }}
+                >
+                  {style.label}
+                </span>
+                <div className="news-item-body">
+                  <div className="news-headline">{item.headline}</div>
+                  <div className="news-meta">
+                    <span className="news-source">{item.source}</span>
+                    <span className="news-time">{timeAgo(item.datetime)}</span>
+                  </div>
+                </div>
+              </a>
+            );
+          })
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="news-panel">
       <div className="section-heading">Market News</div>

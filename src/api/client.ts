@@ -35,6 +35,9 @@ export const market = {
   getMovers: (live = false) => request<import('./types').MoverData>(`/market/movers${live ? '?live=true' : ''}`),
   getNews: () => request<import('./types').NewsItem[]>('/market/news'),
   getSectors: () => request<import('./types').SectorPerformance[]>('/market/sectors'),
+  getFutures: (live = false) => request<import('./types').QuoteData[]>(`/market/futures${live ? '?live=true' : ''}`),
+  getInternational: () => request<import('./types').QuoteData[]>('/market/international'),
+  getCommodities: (live = false) => request<import('./types').QuoteData[]>(`/market/commodities${live ? '?live=true' : ''}`),
 };
 
 // Sector endpoints

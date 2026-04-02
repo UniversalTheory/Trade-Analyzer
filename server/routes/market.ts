@@ -50,6 +50,51 @@ router.get('/news', async (_req, res) => {
   }
 });
 
+// GET /api/market/futures - US equity futures
+router.get('/futures', async (req, res) => {
+  try {
+    const symbols = ['ES=F', 'YM=F', 'NQ=F'];
+    const provider = getProvider('quote');
+    const isLive = req.query.live === 'true';
+    const data = isLive
+      ? await provider.getMultipleQuotes(symbols)
+      : await cachedCall('market:futures', TTLCache.TTL.QUOTE, () => provider.getMultipleQuotes(symbols));
+    res.json(data);
+  } catch (err: any) {
+    console.error('Futures error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch futures' });
+  }
+});
+
+// GET /api/market/international - Major international indices
+router.get('/international', async (_req, res) => {
+  try {
+    const symbols = ['^FTSE', '^GDAXI', '^FCHI', '^STOXX50E', '^N225', '^HSI', '000001.SS', '^AXJO'];
+    const provider = getProvider('quote');
+    const data = await cachedCall('market:international', 2 * 60 * 1000, () => provider.getMultipleQuotes(symbols));
+    res.json(data);
+  } catch (err: any) {
+    console.error('International indices error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch international indices' });
+  }
+});
+
+// GET /api/market/commodities - Major commodities
+router.get('/commodities', async (req, res) => {
+  try {
+    const symbols = ['CL=F', 'BZ=F', 'GC=F', 'SI=F', 'HG=F'];
+    const provider = getProvider('quote');
+    const isLive = req.query.live === 'true';
+    const data = isLive
+      ? await provider.getMultipleQuotes(symbols)
+      : await cachedCall('market:commodities', TTLCache.TTL.QUOTE, () => provider.getMultipleQuotes(symbols));
+    res.json(data);
+  } catch (err: any) {
+    console.error('Commodities error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch commodities' });
+  }
+});
+
 // GET /api/market/sectors - Sector performance
 router.get('/sectors', async (_req, res) => {
   try {

@@ -1,9 +1,11 @@
-import type { QuoteData, SectorPerformance } from '../../api/types';
+import type { QuoteData, SectorPerformance, NewsItem } from '../../api/types';
+import MarketNews from './MarketNews';
 
 interface Props {
   vix: QuoteData | null;
   sectors: SectorPerformance[];
   indices: QuoteData[];
+  news: NewsItem[];
 }
 
 function vixInterpretation(price: number): { label: string; desc: string; color: string } {
@@ -46,7 +48,7 @@ function topSectors(sectors: SectorPerformance[]): { best: SectorPerformance | n
   return { best: sorted[0], worst: sorted[sorted.length - 1] };
 }
 
-export default function MacroIndicators({ vix, sectors, indices }: Props) {
+export default function MacroIndicators({ vix, sectors, indices, news }: Props) {
   const vixData = vix ? vixInterpretation(vix.price) : null;
   const sentiment = marketSentiment(indices);
   const { best, worst } = topSectors(sectors);
@@ -176,6 +178,12 @@ export default function MacroIndicators({ vix, sectors, indices }: Props) {
                 })}
             </div>
           )}
+        </div>
+
+        {/* Market News */}
+        <div className="macro-card macro-card--news">
+          <div className="macro-card-label">Market News</div>
+          <MarketNews news={news} compact />
         </div>
 
       </div>
