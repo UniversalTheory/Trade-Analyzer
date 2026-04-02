@@ -53,7 +53,7 @@ router.get('/news', async (_req, res) => {
 // GET /api/market/futures - US equity futures
 router.get('/futures', async (req, res) => {
   try {
-    const symbols = ['ES=F', 'YM=F', 'NQ=F'];
+    const symbols = ['ES=F', 'YM=F', 'NQ=F', 'RTY=F', '^TNX', '^TYX'];
     const provider = getProvider('quote');
     const isLive = req.query.live === 'true';
     const data = isLive
