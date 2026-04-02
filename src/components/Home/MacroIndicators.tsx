@@ -69,18 +69,33 @@ export default function MacroIndicators({ vix, sectors, indices }: Props) {
                 {vixData?.label}
               </div>
               <div className="macro-card-desc">{vixData?.desc}</div>
+              {/* Segmented VIX bar: 4 fixed zones, filled up to current VIX level */}
               <div className="macro-vix-bar">
-                <div
-                  className="macro-vix-fill"
-                  style={{
-                    width: `${Math.min((vix.price / 50) * 100, 100)}%`,
-                    background: `linear-gradient(90deg, var(--color-green), var(--color-yellow) 50%, var(--color-red))`,
-                    clipPath: `inset(0 ${100 - Math.min((vix.price / 50) * 100, 100)}% 0 0)`,
-                  }}
-                />
+                {[
+                  { max: 15, color: '#22c55e', label: '15' },
+                  { max: 20, color: '#3b82f6', label: '20' },
+                  { max: 30, color: '#f59e0b', label: '30' },
+                  { max: 50, color: '#ef4444', label: '50+' },
+                ].map(({ max, color, label }, i, arr) => {
+                  const zoneMin = i === 0 ? 0 : arr[i - 1].max;
+                  const zoneWidth = (max - zoneMin) / 50; // fraction of total bar
+                  const filled = Math.min(Math.max(vix.price - zoneMin, 0), max - zoneMin) / (max - zoneMin);
+                  return (
+                    <div
+                      key={label}
+                      className="macro-vix-zone"
+                      style={{ flex: zoneWidth }}
+                    >
+                      <div
+                        className="macro-vix-zone-fill"
+                        style={{ width: `${filled * 100}%`, background: color }}
+                      />
+                    </div>
+                  );
+                })}
               </div>
               <div className="macro-vix-scale">
-                <span>0</span><span>15</span><span>25</span><span>40+</span>
+                <span>0</span><span>15</span><span>20</span><span>30</span><span>50+</span>
               </div>
             </>
           ) : (
@@ -132,26 +147,33 @@ export default function MacroIndicators({ vix, sectors, indices }: Props) {
             <div className="macro-sector-mini-bars">
               {[...sectors]
                 .sort((a, b) => b.changePercent1D - a.changePercent1D)
-                .map(s => (
-                  <div key={s.sector} className="macro-mini-bar-row">
-                    <span className="macro-mini-bar-label">{s.etfSymbol}</span>
-                    <div className="macro-mini-bar-track">
-                      <div
-                        className="macro-mini-bar-fill"
-                        style={{
-                          width: `${Math.min(Math.abs(s.changePercent1D) * 20, 100)}%`,
-                          background: s.changePercent1D >= 0 ? 'var(--color-green)' : 'var(--color-red)',
-                        }}
-                      />
+                .map(s => {
+                  const pct = s.changePercent1D;
+                  // Max 3% = full half-bar (50% of track)
+                  const halfPct = Math.min(Math.abs(pct) / 3 * 50, 50);
+                  const isUp = pct >= 0;
+                  return (
+                    <div key={s.sector} className="macro-mini-bar-row">
+                      <span className="macro-mini-bar-label">{s.etfSymbol}</span>
+                      <div className="macro-mini-bar-track">
+                        <div
+                          className="macro-mini-bar-fill"
+                          style={{
+                            width: `${halfPct}%`,
+                            background: isUp ? '#22c55e' : '#ef4444',
+                            left: isUp ? '50%' : `${50 - halfPct}%`,
+                          }}
+                        />
+                      </div>
+                      <span
+                        className="macro-mini-bar-pct"
+                        style={{ color: isUp ? 'var(--color-green)' : 'var(--color-red)' }}
+                      >
+                        {isUp ? '+' : ''}{pct.toFixed(2)}%
+                      </span>
                     </div>
-                    <span
-                      className="macro-mini-bar-pct"
-                      style={{ color: s.changePercent1D >= 0 ? 'var(--color-green)' : 'var(--color-red)' }}
-                    >
-                      {s.changePercent1D >= 0 ? '+' : ''}{s.changePercent1D.toFixed(2)}%
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           )}
         </div>

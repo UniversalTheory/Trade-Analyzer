@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import OptionsCalculator from './components/OptionsCalculator/OptionsCalculator';
 import MarketOverview from './components/Home/MarketOverview';
 import SectorResearch from './components/Sector/SectorResearch';
+import TickerResearch, { type CalcPrefill } from './components/Ticker/TickerResearch';
 
 type Tab = 'home' | 'sector' | 'ticker' | 'options';
 
@@ -12,19 +13,14 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'options', label: 'Options',  icon: 'Δ' },
 ];
 
-function ComingSoon({ icon, title, desc }: { icon: string; title: string; desc: string }) {
-  return (
-    <div className="coming-soon">
-      <div className="coming-soon-icon">{icon}</div>
-      <div className="coming-soon-title">{title}</div>
-      <div className="coming-soon-desc">{desc}</div>
-      <div className="coming-soon-badge">Coming in Phase {title === 'Market Overview' ? '3' : title === 'Sector Research' ? '4' : '5'}</div>
-    </div>
-  );
-}
-
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [calcPrefill, setCalcPrefill] = useState<CalcPrefill | null>(null);
+
+  const handleAnalyzeInCalculator = useCallback((prefill: CalcPrefill) => {
+    setCalcPrefill(prefill);
+    setActiveTab('options');
+  }, []);
 
   return (
     <>
@@ -55,13 +51,14 @@ export default function App() {
         {activeTab === 'home' && <MarketOverview />}
         {activeTab === 'sector' && <SectorResearch />}
         {activeTab === 'ticker' && (
-          <ComingSoon
-            icon="⌕"
-            title="Ticker Research"
-            desc="Search any symbol for price charts, technical analysis, options chain, and trade recommendations."
+          <TickerResearch onAnalyzeInCalculator={handleAnalyzeInCalculator} />
+        )}
+        {activeTab === 'options' && (
+          <OptionsCalculator
+            prefill={calcPrefill}
+            onPrefillConsumed={() => setCalcPrefill(null)}
           />
         )}
-        {activeTab === 'options' && <OptionsCalculator />}
       </main>
     </>
   );

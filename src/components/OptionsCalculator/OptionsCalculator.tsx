@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SpreadAnalysis from '../SpreadAnalysis/SpreadAnalysis';
 import ExpectedMove from '../ExpectedMove/ExpectedMove';
 import KellyCriterion from '../KellyCriterion/KellyCriterion';
 import BlackScholes from './BlackScholes';
+import type { CalcPrefill } from '../Ticker/TickerResearch';
 
 type OptionsTool = 'spread' | 'expected' | 'kelly' | 'blackscholes';
 
@@ -13,8 +14,19 @@ const TOOLS: { id: OptionsTool; label: string; icon: string }[] = [
   { id: 'blackscholes',label: 'Black-Scholes',     icon: '∫' },
 ];
 
-export default function OptionsCalculator() {
+interface Props {
+  prefill?: CalcPrefill | null;
+  onPrefillConsumed?: () => void;
+}
+
+export default function OptionsCalculator({ prefill, onPrefillConsumed }: Props) {
   const [activeTool, setActiveTool] = useState<OptionsTool>('spread');
+
+  useEffect(() => {
+    if (prefill) {
+      setActiveTool('blackscholes');
+    }
+  }, [prefill]);
 
   return (
     <div className="options-calculator">
@@ -35,7 +47,9 @@ export default function OptionsCalculator() {
         {activeTool === 'spread'       && <SpreadAnalysis />}
         {activeTool === 'expected'     && <ExpectedMove />}
         {activeTool === 'kelly'        && <KellyCriterion />}
-        {activeTool === 'blackscholes' && <BlackScholes />}
+        {activeTool === 'blackscholes' && (
+          <BlackScholes prefill={prefill ?? null} onPrefillConsumed={onPrefillConsumed} />
+        )}
       </div>
     </div>
   );

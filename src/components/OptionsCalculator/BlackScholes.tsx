@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { calcBlackScholes } from '../../utils/blackScholes';
 import type { BlackScholesInputs, BlackScholesResult as BSResult } from '../../utils/types';
 import ResultCard from '../common/ResultCard';
 import ResultItem from '../common/ResultItem';
 import InterpretationBox from '../common/InterpretationBox';
 import GreeksDisplay from './GreeksDisplay';
+import type { CalcPrefill } from '../Ticker/TickerResearch';
 
 const initialInputs: BlackScholesInputs = {
   stockPrice: '',
@@ -14,6 +15,11 @@ const initialInputs: BlackScholesInputs = {
   volatility: '',
   optionType: 'call',
 };
+
+interface Props {
+  prefill?: CalcPrefill | null;
+  onPrefillConsumed?: () => void;
+}
 
 function buildResult(inputs: BlackScholesInputs): BSResult | null {
   const S = parseFloat(inputs.stockPrice);
@@ -47,10 +53,24 @@ function buildResult(inputs: BlackScholesInputs): BSResult | null {
   };
 }
 
-export default function BlackScholes() {
+export default function BlackScholes({ prefill, onPrefillConsumed }: Props) {
   const [inputs, setInputs] = useState<BlackScholesInputs>(initialInputs);
   const [result, setResult] = useState<BSResult | null>(null);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!prefill) return;
+    setInputs(prev => ({
+      ...prev,
+      stockPrice: prefill.stockPrice,
+      volatility: prefill.volatility,
+      strikePrice: '',
+      daysToExpiry: '',
+    }));
+    setResult(null);
+    setError('');
+    onPrefillConsumed?.();
+  }, [prefill]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setInputs(prev => ({ ...prev, [e.target.name]: e.target.value }));

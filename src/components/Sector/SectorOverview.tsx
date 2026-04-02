@@ -33,9 +33,16 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
+// Direct hex values — CSS variables don't resolve inside SVG <stop> attributes
+const HEX_GREEN = '#22c55e';
+const HEX_RED   = '#ef4444';
+
 export default function SectorOverview({ sector, quote, history }: Props) {
   const up = quote.changePercent >= 0;
-  const color = up ? 'var(--color-green)' : 'var(--color-red)';
+  const color    = up ? 'var(--color-green)' : 'var(--color-red)';
+  const hexColor = up ? HEX_GREEN : HEX_RED;
+  // Unique gradient ID per sector to avoid SVG <defs> collisions across renders
+  const gradId   = `sectorGrad-${sector.id}-${up ? 'up' : 'dn'}`;
 
   // Chart data — show last 60 bars
   const chartData = history.slice(-60).map(b => ({
@@ -90,9 +97,9 @@ export default function SectorOverview({ sector, quote, history }: Props) {
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={chartData} margin={{ top: 6, right: 4, left: 0, bottom: 0 }}>
               <defs>
-                <linearGradient id="sectorGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor={color} stopOpacity={0.25} />
-                  <stop offset="95%" stopColor={color} stopOpacity={0.02} />
+                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor={hexColor} stopOpacity={0.35} />
+                  <stop offset="95%" stopColor={hexColor} stopOpacity={0.03} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -115,9 +122,9 @@ export default function SectorOverview({ sector, quote, history }: Props) {
               <Area
                 type="monotone"
                 dataKey="price"
-                stroke={color}
+                stroke={hexColor}
                 strokeWidth={2}
-                fill="url(#sectorGrad)"
+                fill={`url(#${gradId})`}
                 dot={false}
                 isAnimationActive={false}
               />
