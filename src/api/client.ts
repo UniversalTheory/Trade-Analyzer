@@ -59,6 +59,8 @@ export const ticker = {
     request<import('./types').PriceBar[]>(`/ticker/${symbol}/history?range=${range}`),
   getNews: (symbol: string) => request<import('./types').NewsItem[]>(`/ticker/${symbol}/news`),
   getProfile: (symbol: string) => request<import('./types').AssetProfile>(`/ticker/${symbol}/profile`),
+  getFundamentals: (symbol: string) => request<import('./types').FundamentalsData>(`/ticker/${symbol}/fundamentals`),
+  getFilings: (symbol: string) => request<import('./types').FilingsData>(`/ticker/${symbol}/filings`),
   getOptions: (symbol: string, expiration?: string) => {
     const params = expiration ? `?expiration=${expiration}` : '';
     return request<import('./types').OptionsChainData>(`/ticker/${symbol}/options${params}`);

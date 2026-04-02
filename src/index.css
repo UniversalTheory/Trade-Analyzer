@@ -2409,6 +2409,183 @@ body {
   border-color: rgba(59, 130, 246, 0.5);
 }
 
+/* ── Fundamentals Card ── */
+.fundamentals-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.fundamentals-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.fund-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px 28px;
+}
+
+.fund-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.fund-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.fund-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.fund-row:last-child {
+  border-bottom: none;
+}
+
+.fund-row-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.fund-row-value {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+}
+
+/* ── Filings Card ── */
+.filings-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.filings-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.filings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.filings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filings-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.filings-meta-row {
+  display: flex;
+  gap: 24px;
+}
+
+.filings-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.filings-meta-key {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.filings-meta-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.filings-link-btn {
+  display: inline-block;
+  width: fit-content;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.15s;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+}
+
+.filings-link-btn--primary {
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.filings-link-btn--primary:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.filings-link-btn--secondary {
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-primary);
+  font-size: 11px;
+}
+
+.filings-link-btn--secondary:hover {
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.07);
+}
+
+.filings-ir-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.filings-unavailable {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
 /* ── Quote Card ── */
 .ticker-quote-card {
   background: var(--bg-card);

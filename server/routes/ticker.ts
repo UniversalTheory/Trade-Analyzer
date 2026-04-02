@@ -101,14 +101,15 @@ router.get('/:symbol/profile', async (req, res) => {
         return {
           symbol,
           description,
-          sector:       asset?.sector       ?? undefined,
-          industry:     asset?.industry     ?? undefined,
-          employees:    asset?.fullTimeEmployees ?? undefined,
-          country:      asset?.country      ?? undefined,
-          website:      asset?.website      ?? undefined,
-          fundFamily:   fund?.family        ?? undefined,
-          fundCategory: fund?.categoryName  ?? undefined,
-          legalType:    fund?.legalType     ?? undefined,
+          sector:       asset?.sector              ?? undefined,
+          industry:     asset?.industry            ?? undefined,
+          employees:    asset?.fullTimeEmployees   ?? undefined,
+          country:      asset?.country             ?? undefined,
+          website:      asset?.website             ?? undefined,
+          irWebsite:    asset?.irWebsite           ?? undefined,
+          fundFamily:   fund?.family               ?? undefined,
+          fundCategory: fund?.categoryName         ?? undefined,
+          legalType:    fund?.legalType            ?? undefined,
         };
       },
     );
@@ -116,6 +117,135 @@ router.get('/:symbol/profile', async (req, res) => {
   } catch (err: any) {
     console.error('Asset profile error:', err.message);
     res.status(500).json({ error: 'Failed to fetch asset profile' });
+  }
+});
+
+// GET /api/ticker/:symbol/fundamentals - Key financial metrics
+router.get('/:symbol/fundamentals', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const data = await cachedCall(
+      `ticker:fundamentals:${symbol}`,
+      5 * 60 * 1000,
+      async () => {
+        const summary = await yf.quoteSummary(symbol, {
+          modules: ['financialData', 'defaultKeyStatistics', 'summaryDetail'] as any,
+        });
+        const fd = (summary as any).financialData         ?? {};
+        const ks = (summary as any).defaultKeyStatistics  ?? {};
+        const sd = (summary as any).summaryDetail         ?? {};
+
+        const n = (v: any) => (typeof v === 'number' && isFinite(v) ? v : undefined);
+
+        return {
+          // Valuation
+          marketCap:      n(sd.marketCap),
+          trailingPE:     n(sd.trailingPE),
+          forwardPE:      n(sd.forwardPE ?? ks.forwardPE),
+          priceToSales:   n(sd.priceToSalesTrailing12Months),
+          priceToBook:    n(ks.priceToBook),
+          evToEbitda:     n(ks.enterpriseToEbitda),
+          enterpriseValue: n(ks.enterpriseValue),
+          // Profitability
+          revenue:         n(fd.totalRevenue),
+          grossMargin:     n(fd.grossMargins),
+          ebitdaMargin:    n(fd.ebitdaMargins),
+          operatingMargin: n(fd.operatingMargins),
+          netMargin:       n(fd.profitMargins),
+          roe:             n(fd.returnOnEquity),
+          roa:             n(fd.returnOnAssets),
+          // Financial Health
+          currentRatio:     n(fd.currentRatio),
+          debtToEquity:     n(fd.debtToEquity),
+          freeCashFlow:     n(fd.freeCashflow),
+          cash:             n(fd.totalCash),
+          totalDebt:        n(fd.totalDebt),
+          operatingCashFlow: n(fd.operatingCashflow),
+          // Growth
+          revenueGrowth:  n(fd.revenueGrowth),
+          earningsGrowth: n(fd.earningsGrowth),
+          // Share Data
+          beta:               n(ks.beta ?? sd.beta),
+          sharesOutstanding:  n(ks.sharesOutstanding),
+          shortPercentFloat:  n(ks.shortPercentOfFloat),
+          dividendYield:      n(sd.dividendYield),
+          payoutRatio:        n(sd.payoutRatio),
+          insiderHeld:        n(ks.heldPercentInsiders),
+          institutionHeld:    n(ks.heldPercentInstitutions),
+          // Analyst consensus
+          targetHigh:     n(fd.targetHighPrice),
+          targetLow:      n(fd.targetLowPrice),
+          targetMean:     n(fd.targetMeanPrice),
+          recommendation: typeof fd.recommendationKey === 'string' ? fd.recommendationKey : undefined,
+          analystCount:   n(fd.numberOfAnalystOpinions),
+        };
+      },
+    );
+    res.json(data);
+  } catch (err: any) {
+    console.error('Fundamentals error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch fundamentals' });
+  }
+});
+
+// GET /api/ticker/:symbol/filings - Most recent 10-K via SEC EDGAR
+router.get('/:symbol/filings', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const data = await cachedCall(
+      `ticker:filings:${symbol}`,
+      24 * 60 * 60 * 1000, // 24 hours — filings change rarely
+      async () => {
+        const SEC_HEADERS = {
+          'User-Agent': 'GlobalMarketsLookingGlass/1.0 contact@example.com',
+          'Accept': 'application/json',
+        };
+
+        // 1. Get CIK by ticker
+        const tickersResp = await fetch('https://www.sec.gov/files/company_tickers.json', { headers: SEC_HEADERS });
+        if (!tickersResp.ok) return { available: false, symbol };
+        const tickers: Record<string, { cik_str: number; ticker: string; title: string }> = await tickersResp.json();
+
+        const entry = Object.values(tickers).find(e => e.ticker === symbol.toUpperCase());
+        if (!entry) return { available: false, symbol };
+
+        const cik = String(entry.cik_str).padStart(10, '0');
+        const edgarUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=10-K&dateb=&owner=include&count=10`;
+
+        // 2. Get submissions to find most recent 10-K
+        const subResp = await fetch(`https://data.sec.gov/submissions/CIK${cik}.json`, { headers: SEC_HEADERS });
+        if (!subResp.ok) return { available: true, symbol, cik: entry.cik_str, edgarUrl };
+        const sub: any = await subResp.json();
+
+        const forms: string[]  = sub.filings?.recent?.form         ?? [];
+        const dates: string[]  = sub.filings?.recent?.filingDate   ?? [];
+        const periods: string[] = sub.filings?.recent?.reportDate  ?? [];
+        const accNums: string[] = sub.filings?.recent?.accessionNumber ?? [];
+
+        const idx = forms.findIndex(f => f === '10-K');
+        if (idx === -1) return { available: true, symbol, cik: entry.cik_str, companyName: sub.name, edgarUrl };
+
+        const accNum = accNums[idx].replace(/-/g, '');
+        const filingUrl = `https://www.sec.gov/Archives/edgar/data/${entry.cik_str}/${accNum}/`;
+
+        return {
+          available: true,
+          symbol,
+          cik: entry.cik_str,
+          companyName: sub.name,
+          mostRecent10K: {
+            filingDate: dates[idx],
+            reportDate: periods[idx],
+            url: filingUrl,
+          },
+          edgarUrl,
+        };
+      },
+    );
+    res.json(data);
+  } catch (err: any) {
+    console.error('Filings error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch filings' });
   }
 });
 

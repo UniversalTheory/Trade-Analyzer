@@ -108,9 +108,60 @@ export interface AssetProfile {
   employees?: number;
   country?: string;
   website?: string;
+  irWebsite?: string;
   fundFamily?: string;
   fundCategory?: string;
   legalType?: string;
+}
+
+export interface FundamentalsData {
+  marketCap?: number;
+  trailingPE?: number;
+  forwardPE?: number;
+  priceToSales?: number;
+  priceToBook?: number;
+  evToEbitda?: number;
+  enterpriseValue?: number;
+  revenue?: number;
+  grossMargin?: number;
+  ebitdaMargin?: number;
+  operatingMargin?: number;
+  netMargin?: number;
+  roe?: number;
+  roa?: number;
+  currentRatio?: number;
+  debtToEquity?: number;
+  freeCashFlow?: number;
+  cash?: number;
+  totalDebt?: number;
+  operatingCashFlow?: number;
+  revenueGrowth?: number;
+  earningsGrowth?: number;
+  beta?: number;
+  sharesOutstanding?: number;
+  shortPercentFloat?: number;
+  dividendYield?: number;
+  payoutRatio?: number;
+  insiderHeld?: number;
+  institutionHeld?: number;
+  targetHigh?: number;
+  targetLow?: number;
+  targetMean?: number;
+  recommendation?: string;
+  analystCount?: number;
+}
+
+export interface FilingsData {
+  available: boolean;
+  symbol: string;
+  companyName?: string;
+  cik?: number;
+  mostRecent10K?: {
+    filingDate: string;
+    reportDate: string;
+    url: string;
+  };
+  edgarUrl?: string;
 }
 
 export interface HealthCheck {

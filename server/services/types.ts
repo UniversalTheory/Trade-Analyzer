@@ -104,10 +104,67 @@ export interface AssetProfile {
   employees?: number;
   country?: string;
   website?: string;
+  irWebsite?: string;
   // ETF-specific
   fundFamily?: string;
   fundCategory?: string;
   legalType?: string;
+}
+
+export interface FundamentalsData {
+  // Valuation
+  marketCap?: number;
+  trailingPE?: number;
+  forwardPE?: number;
+  priceToSales?: number;
+  priceToBook?: number;
+  evToEbitda?: number;
+  enterpriseValue?: number;
+  // Profitability
+  revenue?: number;
+  grossMargin?: number;
+  ebitdaMargin?: number;
+  operatingMargin?: number;
+  netMargin?: number;
+  roe?: number;
+  roa?: number;
+  // Financial Health
+  currentRatio?: number;
+  debtToEquity?: number;
+  freeCashFlow?: number;
+  cash?: number;
+  totalDebt?: number;
+  operatingCashFlow?: number;
+  // Growth
+  revenueGrowth?: number;
+  earningsGrowth?: number;
+  // Share Data
+  beta?: number;
+  sharesOutstanding?: number;
+  shortPercentFloat?: number;
+  dividendYield?: number;
+  payoutRatio?: number;
+  insiderHeld?: number;
+  institutionHeld?: number;
+  // Analyst consensus
+  targetHigh?: number;
+  targetLow?: number;
+  targetMean?: number;
+  recommendation?: string;
+  analystCount?: number;
+}
+
+export interface FilingsData {
+  available: boolean;
+  symbol: string;
+  companyName?: string;
+  cik?: number;
+  mostRecent10K?: {
+    filingDate: string;
+    reportDate: string;
+    url: string;
+  };
+  edgarUrl?: string;
 }
 
 // Provider interface — all adapters must implement this
