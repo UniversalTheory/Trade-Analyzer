@@ -48,17 +48,17 @@ export default function App() {
       </header>
 
       <main className="main-content">
-        {activeTab === 'home' && <MarketOverview />}
-        {activeTab === 'sector' && <SectorResearch />}
-        {activeTab === 'ticker' && (
+        <div className={activeTab === 'home' ? '' : 'tab-hidden'}><MarketOverview /></div>
+        <div className={activeTab === 'sector' ? '' : 'tab-hidden'}><SectorResearch /></div>
+        <div className={activeTab === 'ticker' ? '' : 'tab-hidden'}>
           <TickerResearch onAnalyzeInCalculator={handleAnalyzeInCalculator} />
-        )}
-        {activeTab === 'options' && (
+        </div>
+        <div className={activeTab === 'options' ? '' : 'tab-hidden'}>
           <OptionsCalculator
             prefill={calcPrefill}
             onPrefillConsumed={() => setCalcPrefill(null)}
           />
-        )}
+        </div>
       </main>
     </>
   );

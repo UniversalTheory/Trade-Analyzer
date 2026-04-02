@@ -129,6 +129,9 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
+/* Tab visibility — keep all tab components mounted to preserve state */
+.tab-hidden { display: none; }
+
 /* Main Layout */
 .main-content {
   max-width: 1400px;
