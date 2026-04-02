@@ -31,8 +31,8 @@ async function request<T>(
 
 // Market endpoints
 export const market = {
-  getIndices: () => request<import('./types').QuoteData[]>('/market/indices'),
-  getMovers: () => request<import('./types').MoverData>('/market/movers'),
+  getIndices: (live = false) => request<import('./types').QuoteData[]>(`/market/indices${live ? '?live=true' : ''}`),
+  getMovers: (live = false) => request<import('./types').MoverData>(`/market/movers${live ? '?live=true' : ''}`),
   getNews: () => request<import('./types').NewsItem[]>('/market/news'),
   getSectors: () => request<import('./types').SectorPerformance[]>('/market/sectors'),
 };

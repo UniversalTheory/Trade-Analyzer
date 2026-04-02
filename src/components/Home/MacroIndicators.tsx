@@ -30,14 +30,14 @@ function vixInterpretation(price: number): { label: string; desc: string; color:
 }
 
 function marketSentiment(indices: QuoteData[]): { label: string; color: string; desc: string } {
-  const spy = indices.find(q => q.symbol === 'SPY');
-  if (!spy) return { label: 'Unknown', color: 'var(--text-muted)', desc: '' };
-  const pct = spy.changePercent;
-  if (pct > 1.5)  return { label: 'Strong Bullish', color: 'var(--color-green)', desc: `SPY up ${pct.toFixed(2)}% — broad market strength` };
-  if (pct > 0.25) return { label: 'Mildly Bullish', color: 'var(--color-green)', desc: `SPY up ${pct.toFixed(2)}% — moderate buying pressure` };
-  if (pct > -0.25) return { label: 'Neutral / Flat', color: 'var(--color-blue)', desc: `SPY ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% — consolidation` };
-  if (pct > -1.5)  return { label: 'Mildly Bearish', color: 'var(--color-yellow)', desc: `SPY down ${Math.abs(pct).toFixed(2)}% — moderate selling` };
-  return { label: 'Strong Bearish', color: 'var(--color-red)', desc: `SPY down ${Math.abs(pct).toFixed(2)}% — broad market weakness` };
+  const spx = indices.find(q => q.symbol === '^GSPC');
+  if (!spx) return { label: 'Unknown', color: 'var(--text-muted)', desc: '' };
+  const pct = spx.changePercent;
+  if (pct > 1.5)  return { label: 'Strong Bullish', color: 'var(--color-green)', desc: `S&P 500 up ${pct.toFixed(2)}% — broad market strength` };
+  if (pct > 0.25) return { label: 'Mildly Bullish', color: 'var(--color-green)', desc: `S&P 500 up ${pct.toFixed(2)}% — moderate buying pressure` };
+  if (pct > -0.25) return { label: 'Neutral / Flat', color: 'var(--color-blue)', desc: `S&P 500 ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% — consolidation` };
+  if (pct > -1.5)  return { label: 'Mildly Bearish', color: 'var(--color-yellow)', desc: `S&P 500 down ${Math.abs(pct).toFixed(2)}% — moderate selling` };
+  return { label: 'Strong Bearish', color: 'var(--color-red)', desc: `S&P 500 down ${Math.abs(pct).toFixed(2)}% — broad market weakness` };
 }
 
 function topSectors(sectors: SectorPerformance[]): { best: SectorPerformance | null; worst: SectorPerformance | null } {

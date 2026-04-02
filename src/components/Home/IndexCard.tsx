@@ -8,11 +8,11 @@ interface Props {
 }
 
 const DISPLAY_NAMES: Record<string, string> = {
-  'SPY':  'S&P 500',
-  'QQQ':  'Nasdaq 100',
-  'DIA':  'Dow Jones',
-  'IWM':  'Russell 2000',
-  '^VIX': 'VIX',
+  '^GSPC': 'S&P 500',
+  '^IXIC': 'Nasdaq Composite',
+  '^DJI':  'Dow Jones',
+  '^RUT':  'Russell 2000',
+  '^VIX':  'VIX',
 };
 
 function vixLabel(price: number): { label: string; color: string } {
@@ -48,7 +48,7 @@ export default function IndexCard({ quote, history, isVix }: Props) {
       </div>
 
       <div className="index-card-price" style={{ color }}>
-        {isVix ? quote.price.toFixed(2) : `$${quote.price.toFixed(2)}`}
+        {quote.price.toFixed(2)}
       </div>
 
       <div className="index-card-change">

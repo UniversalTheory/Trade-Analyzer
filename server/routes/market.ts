@@ -4,15 +4,14 @@ import { getProvider, cachedCall, TTLCache } from '../services/providerRegistry.
 const router = Router();
 
 // GET /api/market/indices - Major market indices
-router.get('/indices', async (_req, res) => {
+router.get('/indices', async (req, res) => {
   try {
-    const symbols = ['SPY', 'QQQ', 'DIA', 'IWM', '^VIX'];
+    const symbols = ['^GSPC', '^IXIC', '^DJI', '^RUT', '^VIX'];
     const provider = getProvider('quote');
-    const data = await cachedCall(
-      'market:indices',
-      TTLCache.TTL.QUOTE,
-      () => provider.getMultipleQuotes(symbols),
-    );
+    const isLive = req.query.live === 'true';
+    const data = isLive
+      ? await provider.getMultipleQuotes(symbols)
+      : await cachedCall('market:indices', TTLCache.TTL.QUOTE, () => provider.getMultipleQuotes(symbols));
     res.json(data);
   } catch (err: any) {
     console.error('Market indices error:', err.message);
@@ -21,14 +20,13 @@ router.get('/indices', async (_req, res) => {
 });
 
 // GET /api/market/movers - Top gainers and losers
-router.get('/movers', async (_req, res) => {
+router.get('/movers', async (req, res) => {
   try {
     const provider = getProvider('movers');
-    const data = await cachedCall(
-      'market:movers',
-      TTLCache.TTL.MOVERS,
-      () => provider.getTopMovers(),
-    );
+    const isLive = req.query.live === 'true';
+    const data = isLive
+      ? await provider.getTopMovers()
+      : await cachedCall('market:movers', TTLCache.TTL.MOVERS, () => provider.getTopMovers());
     res.json(data);
   } catch (err: any) {
     console.error('Market movers error:', err.message);

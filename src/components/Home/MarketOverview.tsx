@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { market } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { QuoteData, MoverData, NewsItem, SectorPerformance } from '../../api/types';
@@ -9,7 +9,9 @@ import MarketNews from './MarketNews';
 import LoadingState from '../common/LoadingState';
 import ErrorState from '../common/ErrorState';
 
-const INDEX_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', '^VIX'];
+const INDEX_SYMBOLS = ['^GSPC', '^IXIC', '^DJI', '^RUT', '^VIX'];
+const AUTO_REFRESH_MS = 2 * 60 * 1000;  // 2 minutes
+const LIVE_REFRESH_MS = 30 * 1000;       // 30 seconds
 
 function LastUpdated({ time }: { time: Date | null }) {
   if (!time) return null;
@@ -23,17 +25,27 @@ function LastUpdated({ time }: { time: Date | null }) {
 export default function MarketOverview() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [live, setLive] = useState(false);
 
   const onSuccess = useCallback(() => setLastUpdated(new Date()), []);
 
+  // Auto-refresh interval — faster in live mode
+  useEffect(() => {
+    const id = setInterval(
+      () => setRefreshKey(k => k + 1),
+      live ? LIVE_REFRESH_MS : AUTO_REFRESH_MS,
+    );
+    return () => clearInterval(id);
+  }, [live]);
+
   const indices = useApi<QuoteData[]>(
-    () => market.getIndices().then(d => { onSuccess(); return d; }),
-    [refreshKey],
+    () => market.getIndices(live).then(d => { onSuccess(); return d; }),
+    [refreshKey, live],
   );
 
   const movers = useApi<MoverData>(
-    () => market.getMovers(),
-    [refreshKey],
+    () => market.getMovers(live),
+    [refreshKey, live],
   );
 
   const news = useApi<NewsItem[]>(
@@ -61,10 +73,20 @@ export default function MarketOverview() {
       <div className="dashboard-header">
         <div>
           <div className="dashboard-title">Market Overview</div>
-          <div className="dashboard-subtitle">Live market data — updates on each refresh</div>
+          <div className="dashboard-subtitle">
+            {live ? 'Live mode — refreshing every 30 seconds' : 'Auto-refreshes every 2 minutes'}
+          </div>
         </div>
         <div className="dashboard-actions">
           <LastUpdated time={lastUpdated} />
+          <button
+            className={`live-toggle-btn${live ? ' active' : ''}`}
+            onClick={() => setLive(l => !l)}
+            title={live ? 'Live mode on — refreshes every 30s' : 'Enable live mode (30s refresh)'}
+          >
+            <span className={`live-dot${live ? ' pulse' : ''}`} />
+            Live
+          </button>
           <button
             className="refresh-btn"
             onClick={handleRefresh}
