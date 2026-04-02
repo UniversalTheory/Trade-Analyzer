@@ -180,12 +180,12 @@ export default function MacroIndicators({ vix, sectors, indices, news }: Props) 
           )}
         </div>
 
-        {/* Market News */}
-        <div className="macro-card macro-card--news">
-          <div className="macro-card-label">Market News</div>
-          <MarketNews news={news} compact />
-        </div>
+      </div>
 
+      {/* Market News — full width below the 3-card row */}
+      <div className="macro-card macro-card--news" style={{ marginTop: 16 }}>
+        <div className="macro-card-label">Market News</div>
+        <MarketNews news={news} compact />
       </div>
     </div>
   );

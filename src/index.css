@@ -1199,7 +1199,7 @@ body {
 
 .macro-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
 }
 
@@ -1219,7 +1219,7 @@ body {
 .macro-card--news .news-feed--compact {
   flex: 1;
   overflow-y: auto;
-  max-height: 260px;
+  max-height: 200px;
   scrollbar-width: thin;
   scrollbar-color: var(--border-primary) transparent;
   /* Fade hint at bottom */
