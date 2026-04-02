@@ -48,6 +48,7 @@ export const sector = {
   getHistory: (symbol: string, range = '3m') =>
     request<import('./types').PriceBar[]>(`/sector/${symbol}/history?range=${range}`),
   getNews: (symbol: string) => request<import('./types').NewsItem[]>(`/sector/${symbol}/news`),
+  getSectorMovers: (etf: string) => request<import('./types').MoverData>(`/sector/${etf}/movers`),
 };
 
 // Ticker endpoints

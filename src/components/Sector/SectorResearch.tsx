@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { sector as sectorApi, market } from '../../api/client';
+import { sector as sectorApi } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import { calcSectorScore } from '../../utils/sectorAnalysis';
 import type { SectorDefinition, QuoteData, PriceBar, NewsItem, MoverData } from '../../api/types';
@@ -51,8 +51,9 @@ export default function SectorResearch() {
   );
 
   const { data: movers, loading: moversLoading } = useApi<MoverData>(
-    () => market.getMovers(),
-    [],
+    () => sectorApi.getSectorMovers(etf),
+    [etf],
+    { autoFetch: !!etf },
   );
 
   const isLoading = quoteLoading || historyLoading;
