@@ -151,6 +151,17 @@ export interface FundamentalsData {
   analystCount?: number;
 }
 
+export interface EconomicEvent {
+  event: string;
+  country: string;
+  time: string;
+  impact: 'high' | 'medium' | 'low';
+  actual?: number | null;
+  estimate?: number | null;
+  prev?: number | null;
+  unit?: string;
+}
+
 export interface FilingsData {
   available: boolean;
   symbol: string;
@@ -169,6 +180,7 @@ export interface HealthCheck {
   providers: {
     alphaVantage: boolean;
     finnhub: boolean;
+    fred: boolean;
     anthropic: boolean;
   };
 }

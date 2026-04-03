@@ -19,6 +19,7 @@ app.get('/api/health', (_req, res) => {
   const keys = {
     alphaVantage: !!process.env.ALPHA_VANTAGE_KEY,
     finnhub: !!process.env.FINNHUB_KEY,
+    fred: !!process.env.FRED_KEY,
     anthropic: !!process.env.ANTHROPIC_API_KEY,
   };
   res.json({ status: 'ok', providers: keys });
@@ -35,5 +36,6 @@ app.listen(PORT, () => {
   console.log('Configured providers:');
   console.log(`  Alpha Vantage: ${process.env.ALPHA_VANTAGE_KEY ? 'Yes' : 'No'}`);
   console.log(`  Finnhub:       ${process.env.FINNHUB_KEY ? 'Yes' : 'No'}`);
+  console.log(`  FRED:          ${process.env.FRED_KEY ? 'Yes' : 'No'}`);
   console.log(`  Yahoo Finance: Yes (no key needed)`);
 });

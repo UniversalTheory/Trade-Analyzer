@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { market } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
-import type { QuoteData, NewsItem, SectorPerformance } from '../../api/types';
+import type { QuoteData, NewsItem, SectorPerformance, EconomicEvent } from '../../api/types';
 import IndexCard from './IndexCard';
 import MacroIndicators from './MacroIndicators';
 import GlobalMarketsRow from './GlobalMarketsRow';
@@ -49,6 +49,11 @@ export default function MarketOverview() {
 
   const sectors = useApi<SectorPerformance[]>(
     () => market.getSectors(),
+    [refreshKey],
+  );
+
+  const calendar = useApi<{ events: EconomicEvent[]; unavailable?: boolean }>(
+    () => market.getCalendar(),
     [refreshKey],
   );
 
@@ -129,6 +134,8 @@ export default function MarketOverview() {
                 sectors={sectors.data ?? []}
                 indices={indices.data ?? []}
                 news={news.data ?? []}
+                events={calendar.data?.events ?? []}
+                calendarUnavailable={calendar.data?.unavailable}
               />
           }
         </div>

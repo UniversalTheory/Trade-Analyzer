@@ -1257,7 +1257,7 @@ body {
 }
 
 .news-feed--compact .news-headline {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
@@ -1265,7 +1265,7 @@ body {
 }
 
 .news-summary--compact {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-muted);
   line-height: 1.45;
   margin-top: 2px;
@@ -1277,6 +1277,145 @@ body {
 
 .news-feed--compact .news-meta {
   margin-top: 3px;
+}
+
+/* Bottom row: Market News + Economic Calendar side by side */
+.macro-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+/* Economic Calendar */
+.eco-cal-feed {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  max-height: 280px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-primary) transparent;
+  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+}
+
+.eco-cal-feed::-webkit-scrollbar {
+  width: 4px;
+}
+
+.eco-cal-feed::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 2px;
+}
+
+.eco-cal-group {
+  margin-bottom: 10px;
+}
+
+.eco-cal-date-header {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  padding: 4px 0 6px;
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: 4px;
+}
+
+.eco-cal-date-header.today {
+  color: var(--accent-blue);
+}
+
+.eco-cal-event {
+  padding: 5px 2px;
+  border-radius: 4px;
+}
+
+.eco-cal-event:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.eco-cal-event-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eco-cal-impact-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.eco-cal-event-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.eco-cal-event-name {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eco-cal-event-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.eco-cal-impact-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.eco-cal-event-values {
+  display: flex;
+  gap: 10px;
+  margin-top: 3px;
+  padding-left: 15px;
+}
+
+.eco-cal-val {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.eco-cal-val.actual {
+  color: var(--text-secondary);
+}
+
+.eco-cal-val.actual strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.eco-cal-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eco-cal-empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.eco-cal-empty-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
 }
 
 .macro-card-label {

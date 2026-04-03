@@ -38,6 +38,7 @@ export const market = {
   getFutures: (live = false) => request<import('./types').QuoteData[]>(`/market/futures${live ? '?live=true' : ''}`),
   getInternational: () => request<import('./types').QuoteData[]>('/market/international'),
   getCommodities: (live = false) => request<import('./types').QuoteData[]>(`/market/commodities${live ? '?live=true' : ''}`),
+  getCalendar: () => request<{ events: import('./types').EconomicEvent[]; unavailable?: boolean }>('/market/calendar'),
 };
 
 // Sector endpoints

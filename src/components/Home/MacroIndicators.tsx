@@ -1,11 +1,14 @@
-import type { QuoteData, SectorPerformance, NewsItem } from '../../api/types';
+import type { QuoteData, SectorPerformance, NewsItem, EconomicEvent } from '../../api/types';
 import MarketNews from './MarketNews';
+import EconomicCalendar from './EconomicCalendar';
 
 interface Props {
   vix: QuoteData | null;
   sectors: SectorPerformance[];
   indices: QuoteData[];
   news: NewsItem[];
+  events: EconomicEvent[];
+  calendarUnavailable?: boolean;
 }
 
 function vixInterpretation(price: number): { label: string; desc: string; color: string } {
@@ -48,7 +51,7 @@ function topSectors(sectors: SectorPerformance[]): { best: SectorPerformance | n
   return { best: sorted[0], worst: sorted[sorted.length - 1] };
 }
 
-export default function MacroIndicators({ vix, sectors, indices, news }: Props) {
+export default function MacroIndicators({ vix, sectors, indices, news, events, calendarUnavailable }: Props) {
   const vixData = vix ? vixInterpretation(vix.price) : null;
   const sentiment = marketSentiment(indices);
   const { best, worst } = topSectors(sectors);
@@ -182,10 +185,16 @@ export default function MacroIndicators({ vix, sectors, indices, news }: Props) 
 
       </div>
 
-      {/* Market News — full width below the 3-card row */}
-      <div className="macro-card macro-card--news" style={{ marginTop: 16 }}>
-        <div className="macro-card-label">Market News</div>
-        <MarketNews news={news} compact />
+      {/* Market News + Economic Calendar — side by side below the 3-card row */}
+      <div className="macro-bottom-row">
+        <div className="macro-card macro-card--news">
+          <div className="macro-card-label">Market News</div>
+          <MarketNews news={news} compact />
+        </div>
+        <div className="macro-card macro-card--news">
+          <div className="macro-card-label">Economic Calendar</div>
+          <EconomicCalendar events={events} unavailable={calendarUnavailable} />
+        </div>
       </div>
     </div>
   );
