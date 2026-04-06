@@ -5,6 +5,7 @@ import type { QuoteData, NewsItem, SectorPerformance, EconomicEvent } from '../.
 import IndexCard from './IndexCard';
 import MacroIndicators from './MacroIndicators';
 import GlobalMarketsRow from './GlobalMarketsRow';
+import WatchlistPanel from './WatchlistPanel';
 import LoadingState from '../common/LoadingState';
 import ErrorState from '../common/ErrorState';
 
@@ -123,6 +124,9 @@ export default function MarketOverview() {
 
       {/* Global Markets Row: Futures | International | Commodities */}
       <GlobalMarketsRow refreshKey={refreshKey} live={live} />
+
+      {/* Watchlist */}
+      <WatchlistPanel refreshKey={refreshKey} />
 
       {/* Market Conditions: VIX | Tone | Sectors | News */}
       <div className="dashboard-row">

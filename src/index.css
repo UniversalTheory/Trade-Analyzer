@@ -1189,6 +1189,146 @@ body {
   margin-bottom: 14px;
 }
 
+/* ── Watchlist Panel ── */
+.watchlist-panel {
+  margin-bottom: 0;
+}
+
+.watchlist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.watchlist-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.watchlist-heading {
+  margin-bottom: 0;
+}
+
+.watchlist-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.watchlist-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 5px 10px;
+  width: 130px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.watchlist-input::placeholder {
+  color: var(--text-muted);
+  font-family: inherit;
+}
+
+.watchlist-input:focus {
+  border-color: var(--color-blue);
+}
+
+.watchlist-input:disabled {
+  opacity: 0.5;
+}
+
+.watchlist-add-btn {
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.watchlist-add-btn:hover:not(:disabled) {
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+}
+
+.watchlist-add-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.watchlist-error {
+  font-size: 11px;
+  color: var(--color-red);
+}
+
+.watchlist-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 12px 4px 4px;
+}
+
+.watchlist-table-head {
+  display: grid;
+  grid-template-columns: 1fr auto auto 20px;
+  gap: 12px;
+  padding: 0 4px 6px;
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.watchlist-table-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto 20px;
+  gap: 12px;
+  align-items: center;
+  padding: 5px 4px;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+
+.watchlist-table-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.watchlist-remove-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.watchlist-remove-btn:hover {
+  color: var(--color-red);
+  background: rgba(239, 68, 68, 0.1);
+}
+
 /* ── Macro Indicators ── */
 .macro-panel {
   background: var(--bg-card);
