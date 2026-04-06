@@ -188,7 +188,7 @@ export default function BlackScholes({ prefill, onPrefillConsumed }: Props) {
         </div>
 
         {error && <div className="error-msg">{error}</div>}
-        <button className="analyze-btn" onClick={handleAnalyze}>Calculate</button>
+        <button className="btn-analyze" onClick={handleAnalyze}>Calculate</button>
       </div>
 
       <div className="results-panel">

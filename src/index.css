@@ -961,6 +961,8 @@ body {
   color: var(--text-muted);
   margin-top: 2px;
   font-family: 'JetBrains Mono', monospace;
+  display: flex;
+  align-items: center;
 }
 
 .index-vix-badge {
@@ -1281,7 +1283,7 @@ body {
 
 .watchlist-table-head {
   display: grid;
-  grid-template-columns: 1fr auto auto 20px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 24px;
   gap: 12px;
   padding: 0 4px 6px;
   border-bottom: 1px solid var(--border-primary);
@@ -1295,7 +1297,7 @@ body {
 
 .watchlist-table-row {
   display: grid;
-  grid-template-columns: 1fr auto auto 20px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 24px;
   gap: 12px;
   align-items: center;
   padding: 5px 4px;
