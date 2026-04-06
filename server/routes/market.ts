@@ -115,7 +115,7 @@ router.get('/international', async (_req, res) => {
 // GET /api/market/commodities - Major commodities
 router.get('/commodities', async (req, res) => {
   try {
-    const symbols = ['CL=F', 'BZ=F', 'GC=F', 'SI=F', 'HG=F'];
+    const symbols = ['CL=F', 'BZ=F', 'GC=F', 'SI=F', 'HG=F', 'BTC-USD'];
     const provider = getProvider('quote');
     const isLive = req.query.live === 'true';
     const data = isLive

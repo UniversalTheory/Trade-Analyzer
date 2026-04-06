@@ -9,15 +9,16 @@ interface Props {
 interface CommodityMeta {
   name: string;
   unit: string;
-  group: 'energy' | 'metals';
+  group: 'energy' | 'metals' | 'digital';
 }
 
 const COMMODITY_META: Record<string, CommodityMeta> = {
-  'CL=F': { name: 'WTI Crude',   unit: '/bbl', group: 'energy'  },
-  'BZ=F': { name: 'Brent Crude', unit: '/bbl', group: 'energy'  },
-  'GC=F': { name: 'Gold',        unit: '/oz',  group: 'metals'  },
-  'SI=F': { name: 'Silver',      unit: '/oz',  group: 'metals'  },
-  'HG=F': { name: 'Copper',      unit: '/lb',  group: 'metals'  },
+  'CL=F':   { name: 'WTI Crude',   unit: '/bbl', group: 'energy'  },
+  'BZ=F':   { name: 'Brent Crude', unit: '/bbl', group: 'energy'  },
+  'GC=F':   { name: 'Gold',        unit: '/oz',  group: 'metals'  },
+  'SI=F':   { name: 'Silver',      unit: '/oz',  group: 'metals'  },
+  'HG=F':   { name: 'Copper',      unit: '/lb',  group: 'metals'  },
+  'BTC-USD': { name: 'Bitcoin',    unit: 'USD',  group: 'digital' },
 };
 
 function fmt(price: number): string {
@@ -25,8 +26,9 @@ function fmt(price: number): string {
 }
 
 export default function CommoditiesPanel({ quotes, loading }: Props) {
-  const energy = quotes.filter(q => COMMODITY_META[q.symbol]?.group === 'energy');
-  const metals = quotes.filter(q => COMMODITY_META[q.symbol]?.group === 'metals');
+  const energy  = quotes.filter(q => COMMODITY_META[q.symbol]?.group === 'energy');
+  const metals  = quotes.filter(q => COMMODITY_META[q.symbol]?.group === 'metals');
+  const digital = quotes.filter(q => COMMODITY_META[q.symbol]?.group === 'digital');
 
   return (
     <div className="global-panel">
@@ -66,6 +68,25 @@ export default function CommoditiesPanel({ quotes, loading }: Props) {
 
           <div className="global-region-label global-region-label--gap">Metals</div>
           {metals.map(q => {
+            const meta = COMMODITY_META[q.symbol];
+            const up = q.changePercent >= 0;
+            const color = up ? 'var(--color-green)' : 'var(--color-red)';
+            return (
+              <div key={q.symbol} className="global-table-row">
+                <div className="global-row-name">
+                  <span className="global-row-label">{meta?.name ?? q.symbol}</span>
+                  <span className="global-row-sub">{q.symbol} · {meta?.unit}</span>
+                </div>
+                <span className="global-row-price ta-right">${fmt(q.price)}</span>
+                <span className="global-row-change ta-right" style={{ color }}>
+                  {up ? '+' : ''}{q.changePercent.toFixed(2)}%
+                </span>
+              </div>
+            );
+          })}
+
+          <div className="global-region-label global-region-label--gap">Digital Assets</div>
+          {digital.map(q => {
             const meta = COMMODITY_META[q.symbol];
             const up = q.changePercent >= 0;
             const color = up ? 'var(--color-green)' : 'var(--color-red)';
