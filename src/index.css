@@ -3195,7 +3195,7 @@ body {
   gap: 8px;
 }
 
-.trade-recs-counts, .trade-recs-score {
+.trade-recs-counts, .trade-recs-score, .trade-recs-confidence-label {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   color: var(--text-muted);
@@ -3217,7 +3217,12 @@ body {
   border-radius: 20px;
   padding: 5px 12px;
   font-size: 12px;
+  border-left: 3px solid var(--border-primary);
 }
+
+.signal-pill--technical { border-left-color: var(--accent-blue); }
+.signal-pill--fundamental { border-left-color: #a855f7; }
+.signal-pill--volatility { border-left-color: var(--accent-yellow); }
 
 .signal-icon { font-size: 10px; }
 
@@ -3265,6 +3270,161 @@ body {
 .trade-rec-risk {
   font-size: 11px;
   color: var(--text-muted);
+}
+
+/* Signal count summary */
+.trade-recs-signal-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.trade-recs-signal-sep {
+  color: var(--border-primary);
+}
+
+.trade-recs-agreement {
+  color: var(--text-muted);
+}
+
+/* Top row: strategy name + badges */
+.trade-rec-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.trade-rec-badges {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.trade-rec-type-badge,
+.trade-rec-risk-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+}
+
+.trade-rec-type-badge.bullish {
+  color: var(--accent-green);
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.trade-rec-type-badge.bearish {
+  color: var(--accent-red);
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.trade-rec-type-badge.neutral {
+  color: var(--accent-yellow);
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+/* Confidence bar */
+.trade-rec-confidence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.confidence-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.confidence-fill.bullish { background: var(--accent-green); }
+.confidence-fill.bearish { background: var(--accent-red); }
+.confidence-fill.neutral { background: var(--accent-yellow); }
+
+.confidence-pct {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-muted);
+  min-width: 30px;
+  text-align: right;
+}
+
+/* Supporting signals & warnings */
+.trade-rec-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.trade-rec-section-label--warn {
+  color: var(--accent-yellow);
+}
+
+.trade-rec-supporting {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-primary);
+}
+
+.trade-rec-supporting ul,
+.trade-rec-warnings ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.trade-rec-supporting li,
+.trade-rec-warnings li {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  padding-left: 14px;
+  position: relative;
+}
+
+.trade-rec-supporting li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--accent-blue);
+}
+
+.trade-rec-warnings {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.trade-rec-warnings li::before {
+  content: '⚠';
+  position: absolute;
+  left: 0;
+  font-size: 10px;
 }
 
 /* ── Prefill banner in Black-Scholes ── */

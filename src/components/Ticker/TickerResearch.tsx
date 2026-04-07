@@ -138,7 +138,7 @@ export default function TickerResearch({ onAnalyzeInCalculator }: Props) {
             <TechnicalIndicators bars={bars} />
           )}
 
-          <TradeRecommendations quote={quote} bars={bars ?? []} />
+          <TradeRecommendations quote={quote} bars={bars ?? []} fundamentals={fundamentals ?? undefined} />
 
           <OptionsChain
             symbol={symbol}
