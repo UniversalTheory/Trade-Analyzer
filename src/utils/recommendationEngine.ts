@@ -842,3 +842,90 @@ export function buildRecommendations(
     };
   });
 }
+
+// ── Trade summary ──
+//
+// Generates a 1–3 sentence plain-language overview of the current analysis.
+// Structured for easy replacement with an async AI-generated version in Phase 6.
+// Inputs mirror what a Claude API call would receive; return type stays `string`.
+
+export function generateTradesSummary(
+  symbol: string,
+  result: ScoringResult & { ivAnalysis?: IVAnalysis | null },
+  recs: Recommendation[],
+  fundamentals?: FundamentalsData,
+): string {
+  const { compositeScore, confidence, bullishCount, bearishCount, neutralCount, signalAgreement, ivAnalysis } = result;
+
+  const totalSignals = bullishCount + bearishCount + neutralCount;
+  if (totalSignals === 0) return `Insufficient data to analyze ${symbol} at this time.`;
+
+  // ── Sentence 1: overall sentiment + signal picture ──
+  const sentimentWord =
+    compositeScore >= 0.35 ? 'strongly bullish'
+    : compositeScore >= 0.15 ? 'moderately bullish'
+    : compositeScore <= -0.35 ? 'strongly bearish'
+    : compositeScore <= -0.15 ? 'moderately bearish'
+    : 'mixed / neutral';
+
+  const confPct = Math.round(confidence * 100);
+  const agreementPct = Math.round(signalAgreement * 100);
+  const dominantCount = compositeScore >= 0 ? bullishCount : bearishCount;
+  const dominantWord = compositeScore >= 0 ? 'bullish' : 'bearish';
+
+  const s1 = `${symbol} is currently reading ${sentimentWord} — ${dominantCount} of ${totalSignals} signals are ${dominantWord} with ${agreementPct}% agreement at ${confPct}% confidence.`;
+
+  // ── Sentence 2: key drivers ──
+  const techSignals = result.signals.filter(s => s.category === 'technical').sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
+  const fundSignals = result.signals.filter(s => s.category === 'fundamental').sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
+
+  const drivers: string[] = [];
+
+  if (techSignals.length > 0) {
+    const top = techSignals[0];
+    drivers.push(`${top.direction} technicals (${top.label}: ${top.reason.toLowerCase()})`);
+  }
+
+  if (fundSignals.length > 0) {
+    const top = fundSignals[0];
+    drivers.push(`${top.direction} fundamentals (${top.reason.toLowerCase()})`);
+  }
+
+  if (ivAnalysis) {
+    const ivPct = ivAnalysis.ivPercentileEstimate;
+    const ivLabel = ivPct >= 70 ? 'elevated IV' : ivPct <= 30 ? 'compressed IV' : 'neutral IV';
+    drivers.push(`${ivLabel} at ~${ivPct}th percentile`);
+  }
+
+  const s2 = drivers.length > 0
+    ? `Key drivers include ${drivers.join(', ')}.`
+    : '';
+
+  // ── Sentence 3: rec rationale or no-rec explanation ──
+  let s3 = '';
+  if (recs.length === 0) {
+    if (signalAgreement < 0.45) {
+      s3 = `Signals are too conflicted to generate a high-confidence trade — consider waiting for clearer direction.`;
+    } else {
+      s3 = `Signal strength is below the confidence threshold — no trade is recommended at this time.`;
+    }
+  } else {
+    const types = [...new Set(recs.map(r => r.type))];
+    const strategies = recs.slice(0, 2).map(r => r.strategy).join(' and ');
+    const ivContext = ivAnalysis
+      ? ivAnalysis.ivPercentileEstimate >= 70
+        ? 'high IV favors premium-selling strategies'
+        : ivAnalysis.ivPercentileEstimate <= 30
+          ? 'low IV favors buying premium'
+          : null
+      : null;
+
+    const recSentence = types.length === 1
+      ? `The ${types[0]} bias supports strategies like ${strategies}`
+      : `The mixed bias supports strategies like ${strategies}`;
+
+    s3 = ivContext ? `${recSentence}; ${ivContext}.` : `${recSentence}.`;
+  }
+
+  return [s1, s2, s3].filter(Boolean).join(' ');
+}

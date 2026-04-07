@@ -124,6 +124,9 @@ export default function WatchlistPanel({ refreshKey }: Props) {
         <div className="global-table">
           <div className="watchlist-table-head">
             <span>Symbol</span>
+            <span className="ta-right">Open</span>
+            <span className="ta-right">High</span>
+            <span className="ta-right">Low</span>
             <span className="ta-right">Price</span>
             <span className="ta-right">Chg%</span>
             <span />
@@ -141,7 +144,16 @@ export default function WatchlistPanel({ refreshKey }: Props) {
                   {q?.name && <span className="global-row-sub">{q.name}</span>}
                 </div>
                 <span className="global-row-price ta-right">
-                  {q ? `$${fmt(q.price)}` : loading ? '—' : '—'}
+                  {q ? `$${fmt(q.open)}` : '—'}
+                </span>
+                <span className="global-row-price ta-right" style={{ color: 'var(--color-green)' }}>
+                  {q ? `$${fmt(q.high)}` : '—'}
+                </span>
+                <span className="global-row-price ta-right" style={{ color: 'var(--color-red)' }}>
+                  {q ? `$${fmt(q.low)}` : '—'}
+                </span>
+                <span className="global-row-price ta-right">
+                  {q ? `$${fmt(q.price)}` : '—'}
                 </span>
                 <span className="global-row-change ta-right" style={{ color }}>
                   {q ? `${up ? '+' : ''}${q.changePercent.toFixed(2)}%` : '—'}

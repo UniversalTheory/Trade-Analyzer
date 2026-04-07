@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { PriceBar, QuoteData, FundamentalsData, OptionsChainData } from '../../api/types';
-import { scoreSignals, buildRecommendations } from '../../utils/recommendationEngine';
+import { scoreSignals, buildRecommendations, generateTradesSummary } from '../../utils/recommendationEngine';
 import type { Signal, Recommendation } from '../../utils/recommendationEngine';
 import type { RiskFactor } from '../../utils/riskCalculations';
 
@@ -204,6 +204,7 @@ export default function TradeRecommendations({ quote, bars, fundamentals, option
 
   const result = scoreSignals(quote, bars, fundamentals, optionsChain);
   const recs = buildRecommendations(result, quote, fundamentals, optionsChain);
+  const summary = generateTradesSummary(quote.symbol, result, recs, fundamentals);
 
   const sentiment =
     result.compositeScore >= 0.15 ? 'Bullish'
@@ -231,6 +232,9 @@ export default function TradeRecommendations({ quote, bars, fundamentals, option
           </span>
         </div>
       </div>
+
+      {/* Analysis summary */}
+      <div className="trade-recs-summary">{summary}</div>
 
       {/* IV Summary Bar */}
       {ivData && (
