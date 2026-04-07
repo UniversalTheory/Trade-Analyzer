@@ -1,5 +1,9 @@
-import type { PriceBar, QuoteData, FundamentalsData } from '../api/types';
+import type { PriceBar, QuoteData, FundamentalsData, OptionsChainData } from '../api/types';
 import { calcRSI, calcMACD, calcSMA } from './technicals';
+import { analyzeIV } from './ivAnalysis';
+import type { IVAnalysis } from './ivAnalysis';
+import { calculateRisk } from './riskCalculations';
+import type { RiskBreakdown } from './riskCalculations';
 
 // ── Types ──
 
@@ -30,12 +34,21 @@ export interface RecommendationReasoning {
   warnings: string[];
 }
 
+export interface IVContext {
+  ivPercentile: number;
+  ivRank: string;
+  atmIV: number;
+  ivImpact: string;
+}
+
 export interface Recommendation {
   strategy: string;
   type: 'bullish' | 'bearish' | 'neutral';
   risk: 'low' | 'medium' | 'high';
   confidence: number;
   reasoning: RecommendationReasoning;
+  riskBreakdown?: RiskBreakdown;
+  ivContext?: IVContext;
 }
 
 // ── Category weights ──
@@ -387,10 +400,12 @@ function buildFundamentalSignals(fundamentals?: FundamentalsData): Signal[] {
   return signals;
 }
 
-// ── Volatility signals (Phase 1: beta only) ──
+// ── Volatility signals ──
 
-function buildVolatilitySignals(fundamentals?: FundamentalsData): Signal[] {
+function buildVolatilitySignals(fundamentals?: FundamentalsData, ivData?: IVAnalysis | null): Signal[] {
   const signals: Signal[] = [];
+
+  // Beta
   if (fundamentals?.beta != null) {
     const b = fundamentals.beta;
     let score: number, direction: Signal['direction'], reason: string;
@@ -408,6 +423,55 @@ function buildVolatilitySignals(fundamentals?: FundamentalsData): Signal[] {
     }
     signals.push({ label: `Beta ${b.toFixed(2)}`, category: 'volatility', direction, reason, score, confidence: 0.6 });
   }
+
+  // IV Level (from options chain analysis)
+  if (ivData) {
+    const pct = ivData.ivPercentileEstimate;
+    const ivPctStr = `${(ivData.atmIV * 100).toFixed(1)}%`;
+    let score: number, direction: Signal['direction'], reason: string;
+
+    if (pct >= 80) {
+      score = -0.2; direction = 'neutral'; reason = `IV elevated (~${pct}th pct, ATM ${ivPctStr}) — premiums expensive, favor selling`;
+    } else if (pct >= 60) {
+      score = -0.1; direction = 'neutral'; reason = `IV above average (~${pct}th pct, ATM ${ivPctStr})`;
+    } else if (pct >= 40) {
+      score = 0; direction = 'neutral'; reason = `IV near average (~${pct}th pct, ATM ${ivPctStr})`;
+    } else if (pct >= 20) {
+      score = 0.1; direction = 'neutral'; reason = `IV below average (~${pct}th pct, ATM ${ivPctStr}) — premiums cheap`;
+    } else {
+      score = 0.2; direction = 'neutral'; reason = `IV low (~${pct}th pct, ATM ${ivPctStr}) — premiums cheap, favor buying`;
+    }
+    signals.push({ label: `IV ~${pct}th`, category: 'volatility', direction, reason, score, confidence: 0.65 });
+
+    // Put/Call OI Ratio sentiment
+    const pcr = ivData.putCallOIRatio;
+    if (pcr > 1.5) {
+      signals.push({
+        label: `P/C ${pcr.toFixed(2)}`, category: 'volatility', direction: 'bearish',
+        reason: `Heavy put positioning (P/C OI ${pcr.toFixed(2)}) — elevated hedging or bearish sentiment`,
+        score: -0.3, confidence: 0.55,
+      });
+    } else if (pcr > 1.2) {
+      signals.push({
+        label: `P/C ${pcr.toFixed(2)}`, category: 'volatility', direction: 'bearish',
+        reason: `Above-normal put/call ratio (${pcr.toFixed(2)}) — mildly bearish sentiment`,
+        score: -0.15, confidence: 0.5,
+      });
+    } else if (pcr < 0.6) {
+      signals.push({
+        label: `P/C ${pcr.toFixed(2)}`, category: 'volatility', direction: 'bullish',
+        reason: `Low put/call ratio (${pcr.toFixed(2)}) — bullish positioning`,
+        score: 0.2, confidence: 0.5,
+      });
+    } else if (pcr < 0.8) {
+      signals.push({
+        label: `P/C ${pcr.toFixed(2)}`, category: 'volatility', direction: 'bullish',
+        reason: `Below-normal put/call ratio (${pcr.toFixed(2)}) — mildly bullish sentiment`,
+        score: 0.1, confidence: 0.5,
+      });
+    }
+  }
+
   return signals;
 }
 
@@ -417,10 +481,14 @@ export function scoreSignals(
   quote: QuoteData,
   bars: PriceBar[],
   fundamentals?: FundamentalsData,
-): ScoringResult {
+  optionsChain?: OptionsChainData,
+): ScoringResult & { ivAnalysis?: IVAnalysis | null } {
   const technical = buildTechnicalSignals(quote, bars);
   const fundamental = buildFundamentalSignals(fundamentals);
-  const volatility = buildVolatilitySignals(fundamentals);
+
+  // IV analysis from options chain
+  const ivData = optionsChain ? analyzeIV(optionsChain, quote.price, bars) : null;
+  const volatility = buildVolatilitySignals(fundamentals, ivData);
   const signals = [...technical, ...fundamental, ...volatility];
 
   if (signals.length === 0) {
@@ -465,6 +533,7 @@ export function scoreSignals(
     bearishCount,
     neutralCount,
     signalAgreement,
+    ivAnalysis: ivData,
   };
 }
 
@@ -676,39 +745,100 @@ function buildReasoning(
   return { primary, supporting, warnings: warnings.slice(0, 3) };
 }
 
+// IV regime confidence adjustments
+const IV_FAVORED: Record<string, string[]> = {
+  high: ['Iron Condor', 'Cash-Secured Put', 'Covered Call', 'Put Credit Spread', 'Calendar Spread', 'Collar'],
+  low: ['Long Call', 'Long Put', 'Bull Call Spread', 'Bear Put Spread', 'Straddle / Strangle', 'Protective Put'],
+};
+
 export function buildRecommendations(
-  result: ScoringResult,
+  result: ScoringResult & { ivAnalysis?: IVAnalysis | null },
+  quote: QuoteData,
   fundamentals?: FundamentalsData,
+  optionsChain?: OptionsChainData,
 ): Recommendation[] {
   if (result.signals.length === 0) return [];
 
   const beta = fundamentals?.beta ?? 1.0;
   const hasHighBeta = beta > 1.3;
+  const ivData = result.ivAnalysis;
 
   const candidates = STRATEGIES
     .filter(s => {
-      // Score must be in range
       if (result.compositeScore < s.minScore || result.compositeScore > s.maxScore) return false;
-      // Beta requirement
       if (s.requiresHighBeta && !hasHighBeta) return false;
-      // Low agreement requirement (for straddle)
       if (s.requiresLowAgreement && result.signalAgreement > 0.5) return false;
       return true;
     })
-    .map(s => ({
-      ...s,
-      confidence: computeCandidateConfidence(s, result),
-      reasoning: buildReasoning(s, result, fundamentals),
-    }))
+    .map(s => {
+      let confidence = computeCandidateConfidence(s, result);
+
+      // IV regime adjustments
+      if (ivData) {
+        const isHighIV = ivData.ivPercentileEstimate >= 70;
+        const isLowIV = ivData.ivPercentileEstimate <= 30;
+
+        if (isHighIV && IV_FAVORED.high.includes(s.strategy)) {
+          confidence += 0.12;
+        } else if (isHighIV && IV_FAVORED.low.includes(s.strategy)) {
+          confidence -= 0.12;
+        } else if (isLowIV && IV_FAVORED.low.includes(s.strategy)) {
+          confidence += 0.12;
+        } else if (isLowIV && IV_FAVORED.high.includes(s.strategy)) {
+          confidence -= 0.12;
+        }
+        confidence = Math.min(1, Math.max(0, confidence));
+      }
+
+      return { ...s, confidence, reasoning: buildReasoning(s, result, fundamentals) };
+    })
     .filter(s => s.confidence >= QUALITY_THRESHOLD)
     .sort((a, b) => b.confidence - a.confidence)
     .slice(0, MAX_RECOMMENDATIONS);
 
-  return candidates.map(c => ({
-    strategy: c.strategy,
-    type: c.type,
-    risk: c.risk,
-    confidence: c.confidence,
-    reasoning: c.reasoning,
-  }));
+  return candidates.map(c => {
+    // Build risk breakdown
+    const riskBreakdown = calculateRisk(c.strategy, quote, optionsChain, fundamentals, ivData ?? undefined);
+
+    // Build IV context
+    let ivContext: IVContext | undefined;
+    if (ivData) {
+      const isHighIV = ivData.ivPercentileEstimate >= 70;
+      const isLowIV = ivData.ivPercentileEstimate <= 30;
+      const favorsThis = (isHighIV && IV_FAVORED.high.includes(c.strategy))
+        || (isLowIV && IV_FAVORED.low.includes(c.strategy));
+      const againstThis = (isHighIV && IV_FAVORED.low.includes(c.strategy))
+        || (isLowIV && IV_FAVORED.high.includes(c.strategy));
+
+      let ivImpact: string;
+      if (favorsThis && isHighIV) {
+        ivImpact = 'Elevated IV favors this premium-selling strategy — richer credits available';
+      } else if (favorsThis && isLowIV) {
+        ivImpact = 'Low IV favors this premium-buying strategy — cheaper entry cost';
+      } else if (againstThis && isHighIV) {
+        ivImpact = 'Elevated IV makes this buying strategy more expensive — consider alternatives';
+      } else if (againstThis && isLowIV) {
+        ivImpact = 'Low IV reduces premium income — selling strategies offer less edge';
+      } else {
+        ivImpact = 'IV is in normal range — strategy selection is neutral on volatility';
+      }
+
+      ivContext = {
+        ivPercentile: ivData.ivPercentileEstimate,
+        ivRank: ivData.ivRank,
+        atmIV: ivData.atmIV,
+        ivImpact,
+      };
+    }
+
+    return {
+      strategy: c.strategy,
+      type: c.type,
+      risk: c.risk,
+      confidence: c.confidence,
+      reasoning: c.reasoning,
+      riskBreakdown,
+      ivContext,
+    };
+  });
 }

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { ticker as tickerApi } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
-import type { PriceBar, QuoteData, OptionContract, AssetProfile, FundamentalsData, FilingsData } from '../../api/types';
+import type { PriceBar, QuoteData, OptionContract, OptionsChainData, AssetProfile, FundamentalsData, FilingsData } from '../../api/types';
 import SymbolSearch from './SymbolSearch';
 import TickerQuoteCard from './TickerQuoteCard';
 import AssetProfileCard from './AssetProfile';
@@ -52,6 +52,12 @@ export default function TickerResearch({ onAnalyzeInCalculator }: Props) {
 
   const { data: filings } = useApi<FilingsData>(
     () => tickerApi.getFilings(symbol),
+    [symbol],
+    { autoFetch: !!symbol },
+  );
+
+  const { data: optionsChain } = useApi<OptionsChainData>(
+    () => tickerApi.getOptions(symbol),
     [symbol],
     { autoFetch: !!symbol },
   );
@@ -138,7 +144,7 @@ export default function TickerResearch({ onAnalyzeInCalculator }: Props) {
             <TechnicalIndicators bars={bars} />
           )}
 
-          <TradeRecommendations quote={quote} bars={bars ?? []} fundamentals={fundamentals ?? undefined} />
+          <TradeRecommendations quote={quote} bars={bars ?? []} fundamentals={fundamentals ?? undefined} optionsChain={optionsChain ?? undefined} />
 
           <OptionsChain
             symbol={symbol}

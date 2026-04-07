@@ -3427,6 +3427,212 @@ body {
   font-size: 10px;
 }
 
+/* IV Summary Bar */
+.iv-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.iv-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.iv-summary-label {
+  color: var(--text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.iv-summary-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.iv-summary-sep {
+  color: var(--border-primary);
+  font-size: 10px;
+}
+
+/* Expandable sections */
+.trade-rec-expandable {
+  margin-top: 8px;
+  border-top: 1px solid var(--border-primary);
+  padding-top: 4px;
+}
+
+.trade-rec-expand-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s;
+  width: 100%;
+  text-align: left;
+}
+
+.trade-rec-expand-btn:hover {
+  color: var(--text-primary);
+}
+
+.expand-arrow {
+  display: inline-block;
+  font-size: 10px;
+  transition: transform 0.15s;
+}
+
+.expand-arrow.open {
+  transform: rotate(90deg);
+}
+
+/* Risk Breakdown Section */
+.trade-rec-risk-section {
+  padding: 8px 0 4px;
+}
+
+.risk-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.risk-grid-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.risk-grid-item--wide {
+  grid-column: 1 / -1;
+}
+
+.risk-grid-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+}
+
+.risk-grid-value {
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+}
+
+/* Risk factor badges */
+.risk-factors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.risk-factor-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+  cursor: default;
+}
+
+.risk-factor--low {
+  color: var(--accent-green);
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.risk-factor--medium {
+  color: var(--accent-yellow);
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.risk-factor--high {
+  color: var(--accent-red);
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Risk tips */
+.risk-tips {
+  margin-top: 6px;
+}
+
+.risk-tips ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.risk-tips li {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  padding-left: 14px;
+  position: relative;
+}
+
+.risk-tips li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--accent-blue);
+  font-size: 10px;
+}
+
+/* IV Context Section */
+.trade-rec-iv-section {
+  padding: 8px 0 4px;
+}
+
+.iv-context-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+
+.iv-context-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.iv-context-value {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.iv-context-impact {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
 /* ── Prefill banner in Black-Scholes ── */
 .prefill-banner {
   background: var(--blue-bg);
