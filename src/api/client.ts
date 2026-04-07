@@ -66,6 +66,8 @@ export const ticker = {
     const params = expiration ? `?expiration=${expiration}` : '';
     return request<import('./types').OptionsChainData>(`/ticker/${symbol}/options${params}`);
   },
+  getEarnings: (symbol: string) =>
+    request<import('./types').EarningsData>(`/ticker/${symbol}/earnings`),
 };
 
 // Health check

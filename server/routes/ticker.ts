@@ -249,6 +249,85 @@ router.get('/:symbol/filings', async (req, res) => {
   }
 });
 
+// GET /api/ticker/:symbol/earnings - Earnings history + next earnings date
+router.get('/:symbol/earnings', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const data = await cachedCall(
+      `ticker:earnings:${symbol}`,
+      60 * 60 * 1000, // 1 hour
+      async () => {
+        const summary = await yf.quoteSummary(symbol, {
+          modules: ['earningsHistory', 'earnings', 'calendarEvents'] as any,
+        });
+
+        const n = (v: any): number | undefined => {
+          if (typeof v === 'number' && isFinite(v)) return v;
+          if (v && typeof v.raw === 'number' && isFinite(v.raw)) return v.raw;
+          return undefined;
+        };
+
+        // "3Q2023" → "Q3 '23"
+        const fmtPeriod = (s: string): string => {
+          const m = s.match(/^(\d)Q(\d{4})$/);
+          return m ? `Q${m[1]} '${m[2].slice(2)}` : s;
+        };
+
+        const tsToDate = (ts: any): string | undefined => {
+          const raw = typeof ts === 'number' ? ts : n(ts);
+          if (!raw) return undefined;
+          return new Date(raw * 1000).toISOString().split('T')[0];
+        };
+
+        const eh: any[]  = (summary as any).earningsHistory?.history    ?? [];
+        const ec: any    = (summary as any).earnings?.earningsChart      ?? {};
+        const fc: any[]  = (summary as any).earnings?.financialsChart?.quarterly ?? [];
+        const cal: any   = (summary as any).calendarEvents?.earnings     ?? {};
+
+        // Next earnings date
+        const dateSources = cal.earningsDate ?? ec.earningsDate ?? [];
+        const nextEarningsDate    = tsToDate(dateSources[0]);
+        const nextEarningsDateEnd = tsToDate(dateSources[1]);
+
+        // Revenue actuals keyed by period string (e.g. "3Q2023")
+        const revenueByPeriod: Record<string, number> = {};
+        for (const q of fc) {
+          const key = typeof q.date === 'string' ? q.date : q.date?.fmt;
+          const rev = n(q.revenue);
+          if (key && rev != null) revenueByPeriod[key] = rev;
+        }
+
+        // Build quarters from earningsHistory (has EPS actual + estimate, up to ~12 quarters)
+        const quarters = eh
+          .slice(0, 8)
+          .map((h: any) => {
+            const periodRaw: string = h.quarter?.fmt ?? '';
+            const epsActual     = n(h.epsActual);
+            const epsEstimate   = n(h.epsEstimate);
+            const surpriseRaw   = n(h.surprisePercent);
+            // yahoo-finance2 returns surprisePercent as a decimal (e.g. 0.053 = 5.3%)
+            const epsSurprisePct = surpriseRaw != null ? surpriseRaw * 100 : undefined;
+            return {
+              period:        fmtPeriod(periodRaw),
+              epsActual,
+              epsEstimate,
+              epsSurprisePct,
+              revenueActual: revenueByPeriod[periodRaw],
+            };
+          })
+          .filter((q: any) => q.epsActual != null)
+          .reverse(); // chronological: oldest left, newest right
+
+        return { symbol, nextEarningsDate, nextEarningsDateEnd, quarters };
+      },
+    );
+    res.json(data);
+  } catch (err: any) {
+    console.error('Earnings error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch earnings data' });
+  }
+});
+
 // GET /api/ticker/:symbol/options?expiration=2026-04-17 - Options chain
 router.get('/:symbol/options', async (req, res) => {
   try {

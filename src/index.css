@@ -2754,6 +2754,129 @@ body {
   color: var(--text-primary);
 }
 
+/* ── Filings + Earnings side-by-side row ── */
+.ticker-side-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .ticker-side-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Earnings Card ── */
+.earnings-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.earnings-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.earnings-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.earnings-next-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.earnings-next-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.earnings-next-val {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.earnings-next-countdown {
+  font-size: 0.72rem;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.earnings-section-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.earnings-section-label--rev {
+  margin-top: 8px;
+}
+
+.earnings-legend {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.earnings-legend-bar {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.earnings-legend-bar--beat { background: #22c55e; opacity: 0.85; }
+.earnings-legend-bar--miss { background: #ef4444; opacity: 0.85; }
+
+.earnings-legend-tick {
+  display: inline-block;
+  width: 10px;
+  height: 0;
+  border-top: 1.5px solid rgba(255, 255, 255, 0.55);
+  vertical-align: middle;
+}
+
+.earnings-svg {
+  display: block;
+  overflow: visible;
+}
+
+.earnings-empty {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  padding: 12px 0;
+  text-align: center;
+}
+
 /* ── Filings Card ── */
 .filings-card {
   background: var(--bg-card);

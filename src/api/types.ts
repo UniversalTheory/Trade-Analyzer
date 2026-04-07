@@ -175,6 +175,21 @@ export interface FilingsData {
   edgarUrl?: string;
 }
 
+export interface EarningsQuarter {
+  period: string;           // e.g. "Q3 '23"
+  epsActual?: number;
+  epsEstimate?: number;
+  epsSurprisePct?: number;  // positive = beat, negative = miss
+  revenueActual?: number;   // in raw dollars
+}
+
+export interface EarningsData {
+  symbol: string;
+  nextEarningsDate?: string;     // ISO date string (YYYY-MM-DD)
+  nextEarningsDateEnd?: string;  // end of window if range
+  quarters: EarningsQuarter[];   // chronological order, oldest → newest
+}
+
 export interface HealthCheck {
   status: string;
   providers: {
