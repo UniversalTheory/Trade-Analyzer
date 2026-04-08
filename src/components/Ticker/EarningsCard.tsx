@@ -22,8 +22,8 @@ function fmtDate(iso: string): string {
 
 function EpsChart({ quarters }: { quarters: EarningsQuarter[] }) {
   const W = 400;
-  const H = 120;
-  const ML = 6; const MR = 6; const MT = 18; const MB = 20;
+  const H = 80;
+  const ML = 6; const MR = 6; const MT = 14; const MB = 4;
   const chartW = W - ML - MR;
   const chartH = H - MT - MB;
 
@@ -92,19 +92,24 @@ function EpsChart({ quarters }: { quarters: EarningsQuarter[] }) {
                 </text>
               )}
 
-              {/* Quarter label */}
-              <text
-                x={cx} y={chartH + 14}
-                textAnchor="middle" fontSize={8.5}
-                fill="rgba(255,255,255,0.4)"
-              >
-                {q.period}
-              </text>
             </g>
           );
         })}
       </g>
     </svg>
+  );
+}
+
+// ── Shared X-Axis Label Row ────────────────────────────────────────────────────
+
+function XAxisLabels({ quarters }: { quarters: EarningsQuarter[] }) {
+  if (quarters.length === 0) return null;
+  return (
+    <div className="earnings-x-axis">
+      {quarters.map((q, i) => (
+        <div key={i} className="earnings-x-label">{q.period}</div>
+      ))}
+    </div>
   );
 }
 
@@ -115,8 +120,8 @@ function RevenueChart({ quarters }: { quarters: EarningsQuarter[] }) {
   if (withRev.length === 0) return null;
 
   const W = 400;
-  const H = 100;
-  const ML = 6; const MR = 6; const MT = 16; const MB = 20;
+  const H = 65;
+  const ML = 6; const MR = 6; const MT = 12; const MB = 4;
   const chartW = W - ML - MR;
   const chartH = H - MT - MB;
 
@@ -127,23 +132,26 @@ function RevenueChart({ quarters }: { quarters: EarningsQuarter[] }) {
 
   // Color by YoY if we have 5+ quarters, otherwise QoQ
   const useYoY = withRev.length >= 5;
-  const ACCENT = '#3b82f6';
-  const GREEN  = '#22c55e';
-  const RED    = '#ef4444';
+  const NEUTRAL = '#4b5563'; // no prior period to compare against
+  const GREEN   = '#22c55e';
+  const RED     = '#ef4444';
 
   const getColor = (i: number): string => {
     const compare = useYoY ? withRev[i - 4] : withRev[i - 1];
-    if (!compare) return ACCENT;
+    if (!compare) return NEUTRAL;
     const prev = compare.revenueActual!;
     const curr = withRev[i].revenueActual!;
     if (curr > prev * 1.005) return GREEN;
     if (curr < prev * 0.995) return RED;
-    return ACCENT;
+    return NEUTRAL;
   };
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" className="earnings-svg">
       <g transform={`translate(${ML},${MT})`}>
+        {/* Baseline */}
+        <line x1={0} y1={chartH} x2={chartW} y2={chartH} stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
+
         {withRev.map((q, i) => {
           const cx    = step * i + step / 2;
           const x     = cx - barW / 2;
@@ -162,15 +170,6 @@ function RevenueChart({ quarters }: { quarters: EarningsQuarter[] }) {
                 fill="rgba(255,255,255,0.45)"
               >
                 {fmtRevenue(q.revenueActual!)}
-              </text>
-
-              {/* Quarter label */}
-              <text
-                x={cx} y={chartH + 14}
-                textAnchor="middle" fontSize={8.5}
-                fill="rgba(255,255,255,0.4)"
-              >
-                {q.period}
               </text>
             </g>
           );
@@ -231,6 +230,7 @@ export default function EarningsCard({ data }: Props) {
             </span>
           </div>
           <EpsChart quarters={quarters} />
+          <XAxisLabels quarters={quarters} />
 
           {/* Revenue Section */}
           {hasRevenue && (
@@ -240,9 +240,11 @@ export default function EarningsCard({ data }: Props) {
                 <span className="earnings-legend">
                   <span className="earnings-legend-bar earnings-legend-bar--beat" /> Growth
                   <span className="earnings-legend-bar earnings-legend-bar--miss" /> Decline
+                  <span className="earnings-legend-bar earnings-legend-bar--neutral" /> No prior data
                 </span>
               </div>
               <RevenueChart quarters={quarters} />
+              <XAxisLabels quarters={quarters.filter(q => q.revenueActual != null)} />
             </>
           )}
         </>

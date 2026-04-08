@@ -267,7 +267,7 @@ router.get('/:symbol/earnings', async (req, res) => {
           return undefined;
         };
 
-        // "3Q2023" → "Q3 '23"
+        // "1Q2025" → "Q1 '25"
         const fmtPeriod = (s: string): string => {
           const m = s.match(/^(\d)Q(\d{4})$/);
           return m ? `Q${m[1]} '${m[2].slice(2)}` : s;
@@ -279,43 +279,45 @@ router.get('/:symbol/earnings', async (req, res) => {
           return new Date(raw * 1000).toISOString().split('T')[0];
         };
 
-        const eh: any[]  = (summary as any).earningsHistory?.history    ?? [];
-        const ec: any    = (summary as any).earnings?.earningsChart      ?? {};
-        const fc: any[]  = (summary as any).earnings?.financialsChart?.quarterly ?? [];
-        const cal: any   = (summary as any).calendarEvents?.earnings     ?? {};
+        // earningsChart.quarterly: {date:"1Q2025", actual, estimate, surprisePct:"1.69"}
+        const ecq: any[] = (summary as any).earnings?.earningsChart?.quarterly   ?? [];
+        // financialsChart.quarterly: {date:"1Q2025", revenue, earnings}
+        const fcq: any[] = (summary as any).earnings?.financialsChart?.quarterly ?? [];
+        const echart: any = (summary as any).earnings?.earningsChart ?? {};
+        const cal: any    = (summary as any).calendarEvents?.earnings ?? {};
 
         // Next earnings date
-        const dateSources = cal.earningsDate ?? ec.earningsDate ?? [];
+        const dateSources = cal.earningsDate ?? echart.earningsDate ?? [];
         const nextEarningsDate    = tsToDate(dateSources[0]);
         const nextEarningsDateEnd = tsToDate(dateSources[1]);
 
-        // Revenue actuals keyed by period string (e.g. "3Q2023")
-        const revenueByPeriod: Record<string, number> = {};
-        for (const q of fc) {
-          const key = typeof q.date === 'string' ? q.date : q.date?.fmt;
+        // Revenue keyed by the same date string used in earningsChart ("1Q2025")
+        const revenueByDate: Record<string, number> = {};
+        for (const q of fcq) {
+          const key = typeof q.date === 'string' ? q.date : '';
           const rev = n(q.revenue);
-          if (key && rev != null) revenueByPeriod[key] = rev;
+          if (key && rev != null) revenueByDate[key] = rev;
         }
 
-        // Build quarters from earningsHistory (has EPS actual + estimate, up to ~12 quarters)
-        const quarters = eh
-          .slice(0, 8)
-          .map((h: any) => {
-            const periodRaw: string = h.quarter?.fmt ?? '';
-            const epsActual     = n(h.epsActual);
-            const epsEstimate   = n(h.epsEstimate);
-            const surpriseRaw   = n(h.surprisePercent);
-            // yahoo-finance2 returns surprisePercent as a decimal (e.g. 0.053 = 5.3%)
-            const epsSurprisePct = surpriseRaw != null ? surpriseRaw * 100 : undefined;
+        // Build quarters from earningsChart (date, actual, estimate, surprisePct all present)
+        const quarters = ecq
+          .map((q: any) => {
+            const dateKey     = typeof q.date === 'string' ? q.date : '';
+            const epsActual   = n(q.actual);
+            const epsEstimate = n(q.estimate);
+            // surprisePct arrives as a percentage string e.g. "1.69"
+            const epsSurprisePct =
+              typeof q.surprisePct === 'string' ? parseFloat(q.surprisePct)
+              : n(q.surprisePct);
             return {
-              period:        fmtPeriod(periodRaw),
+              period:        fmtPeriod(dateKey),
               epsActual,
               epsEstimate,
               epsSurprisePct,
-              revenueActual: revenueByPeriod[periodRaw],
+              revenueActual: revenueByDate[dateKey],
             };
           })
-          .filter((q: any) => q.epsActual != null)
+          .filter((q: any) => q.period && q.epsActual != null)
           .reverse(); // chronological: oldest left, newest right
 
         return { symbol, nextEarningsDate, nextEarningsDateEnd, quarters };

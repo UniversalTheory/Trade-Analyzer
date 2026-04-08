@@ -138,10 +138,9 @@ export default function TickerResearch({ onAnalyzeInCalculator }: Props) {
 
           {fundamentals && <FundamentalsCard data={fundamentals} />}
 
-          <div className="ticker-side-row">
-            {filings && <FilingsCard data={filings} irWebsite={profile?.irWebsite} />}
-            {earnings && <EarningsCard data={earnings} />}
-          </div>
+          {earnings && <EarningsCard data={earnings} />}
+
+          {filings && <FilingsCard data={filings} irWebsite={profile?.irWebsite} />}
 
           <PriceChart
             bars={bars ?? []}
