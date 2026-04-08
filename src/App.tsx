@@ -26,7 +26,7 @@ export default function App() {
     <>
       <header className="header">
         <div className="header-left">
-          <div className="logo">Δ</div>
+          <img src="/Analyzer_logo_updated.png" alt="Analyzer logo" className="logo" />
           <div>
             <div className="header-title">Global Markets Looking Glass</div>
             <div className="header-subtitle">Market Research & Analysis</div>
