@@ -29,7 +29,7 @@ export function useApi<T>(
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    setState({ data: null, loading: true, error: null });
 
     try {
       const data = await fetcher();

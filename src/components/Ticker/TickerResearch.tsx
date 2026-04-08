@@ -138,7 +138,7 @@ export default function TickerResearch({ onAnalyzeInCalculator }: Props) {
 
           {fundamentals && <FundamentalsCard data={fundamentals} />}
 
-          {earnings && <EarningsCard data={earnings} />}
+          {earnings && !profile?.fundFamily && <EarningsCard data={earnings} />}
 
           {filings && <FilingsCard data={filings} irWebsite={profile?.irWebsite} />}
 
