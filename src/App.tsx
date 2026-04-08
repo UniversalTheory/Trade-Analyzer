@@ -26,7 +26,7 @@ export default function App() {
     <>
       <header className="header">
         <div className="header-left">
-          <img src="/Analyzer_logo_updated.png" alt="Analyzer logo" className="logo" />
+          <img src="/Analyzer_logo_updated.png" alt="Analyzer logo" className="logo" onClick={() => setActiveTab('home')} style={{ cursor: 'pointer' }} />
           <div>
             <div className="header-title">Global Markets Looking Glass</div>
             <div className="header-subtitle">Market Research & Analysis</div>
