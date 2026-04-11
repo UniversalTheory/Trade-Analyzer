@@ -4097,3 +4097,35 @@ body {
   border: 1px solid var(--glass-border);
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════
+   PHASE C — CARD REVEAL ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Pending state — card is hidden, waiting for IntersectionObserver.
+   !important ensures this overrides any component-level opacity/transform. */
+.reveal-pending {
+  opacity: 0 !important;
+  transform: translateY(18px) !important;
+  /* Suppress the ::after glow while hidden */
+  pointer-events: none;
+}
+
+/* Revealed state — triggers entry animation.
+   animation-delay is set per-card via inline style for stagger. */
+.is-revealed {
+  animation: card-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Entry keyframes — opacity + translateY only (compositor-layer safe) */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+

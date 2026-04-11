@@ -3,6 +3,7 @@ import OptionsCalculator from './components/OptionsCalculator/OptionsCalculator'
 import MarketOverview from './components/Home/MarketOverview';
 import SectorResearch from './components/Sector/SectorResearch';
 import TickerResearch, { type CalcPrefill } from './components/Ticker/TickerResearch';
+import { useRevealObserver } from './hooks/useRevealObserver';
 
 type Tab = 'home' | 'sector' | 'ticker' | 'options';
 
@@ -21,6 +22,8 @@ export default function App() {
     setCalcPrefill(prefill);
     setActiveTab('options');
   }, []);
+
+  useRevealObserver(activeTab);
 
   return (
     <>
