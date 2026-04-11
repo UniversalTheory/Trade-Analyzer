@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import OptionsCalculator from './components/OptionsCalculator/OptionsCalculator';
 import MarketOverview from './components/Home/MarketOverview';
 import SectorResearch from './components/Sector/SectorResearch';
@@ -18,6 +18,25 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [calcPrefill, setCalcPrefill] = useState<CalcPrefill | null>(null);
 
+  // Sliding tab indicator
+  const navRef = useRef<HTMLElement>(null);
+  const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    const activeIdx = TABS.findIndex(t => t.id === activeTab);
+    const btn = btnRefs.current[activeIdx];
+    if (!nav || !btn) return;
+
+    const navRect = nav.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    setIndicator({
+      left:  btnRect.left  - navRect.left,
+      width: btnRect.width,
+    });
+  }, [activeTab]);
+
   const handleAnalyzeInCalculator = useCallback((prefill: CalcPrefill) => {
     setCalcPrefill(prefill);
     setActiveTab('options');
@@ -36,10 +55,19 @@ export default function App() {
           </div>
         </div>
 
-        <nav className="tab-nav">
-          {TABS.map(tab => (
+        <nav className="tab-nav" ref={navRef}>
+          {/* Sliding active-tab pill — animates between tab positions */}
+          {indicator && (
+            <span
+              className="tab-indicator"
+              style={{ left: indicator.left, width: indicator.width }}
+              aria-hidden="true"
+            />
+          )}
+          {TABS.map((tab, i) => (
             <button
               key={tab.id}
+              ref={el => { btnRefs.current[i] = el; }}
               className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
             >

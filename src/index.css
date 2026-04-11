@@ -4129,3 +4129,131 @@ body {
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════
+   PHASE D — MICRO-INTERACTIONS & LIVE DATA EFFECTS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Card Hover Lift ──
+   transform is compositor-only and safe now that box-shadow is no
+   longer in the transition. ::after handles the glow separately. */
+.result-card,
+.interpretation-box,
+.index-card,
+.global-panel,
+.panel-card,
+.macro-panel,
+.movers-panel,
+.news-panel,
+.sector-overview-panel,
+.momentum-panel,
+.gauge-panel,
+.sector-news-panel,
+.asset-profile-card,
+.fundamentals-card,
+.filings-card,
+.ticker-quote-card,
+.price-chart-card,
+.technicals-panel,
+.options-chain-card,
+.trade-recs-card {
+  transition: border-color 0.25s ease, transform 0.25s ease;
+}
+
+.result-card:hover,
+.interpretation-box:hover,
+.index-card:hover,
+.global-panel:hover,
+.panel-card:hover,
+.macro-panel:hover,
+.movers-panel:hover,
+.news-panel:hover,
+.sector-overview-panel:hover,
+.momentum-panel:hover,
+.gauge-panel:hover,
+.sector-news-panel:hover,
+.asset-profile-card:hover,
+.fundamentals-card:hover,
+.filings-card:hover,
+.ticker-quote-card:hover,
+.price-chart-card:hover,
+.technicals-panel:hover,
+.options-chain-card:hover,
+.trade-recs-card:hover {
+  transform: translateY(-2px);
+}
+
+/* ── Sliding Tab Indicator ── */
+.tab-nav {
+  position: relative;
+}
+
+.tab-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 7px;
+  background: rgba(59, 130, 246, 0.13);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.18);
+  pointer-events: none;
+  transition:
+    left  0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Active tab button text stays on top of the indicator */
+.tab-btn {
+  position: relative;
+  z-index: 1;
+}
+
+/* Remove the old background/border/shadow from the active button —
+   the sliding indicator now provides that visual */
+.tab-btn.active {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--text-primary);
+}
+
+/* ── Button Press Micro-interactions ── */
+.btn-analyze:active {
+  transform: scale(0.98);
+  transition: transform 0.08s ease;
+}
+
+.tab-btn:active {
+  transform: scale(0.96);
+  transition: transform 0.08s ease;
+}
+
+.refresh-btn:active,
+.live-toggle-btn:active,
+.range-btn:active,
+.overlay-btn:active,
+.toggle-btn:active,
+.watchlist-add-btn:active,
+.analyze-link-btn:active {
+  transform: scale(0.95);
+  transition: transform 0.08s ease;
+}
+
+/* ── Live Data Value Pulse ──
+   Applied by pulseValue() utility when a price/value updates.
+   CSS handles the animation; the utility just adds/removes the class. */
+@keyframes pulse-up {
+  0%   { color: inherit; text-shadow: none; }
+  25%  { color: var(--accent-green); text-shadow: 0 0 10px rgba(16, 185, 129, 0.7); }
+  100% { color: inherit; text-shadow: none; }
+}
+
+@keyframes pulse-down {
+  0%   { color: inherit; text-shadow: none; }
+  25%  { color: var(--accent-red); text-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
+  100% { color: inherit; text-shadow: none; }
+}
+
+.pulse-up   { animation: pulse-up   1.2s ease-out forwards; }
+.pulse-down { animation: pulse-down 1.2s ease-out forwards; }
+
