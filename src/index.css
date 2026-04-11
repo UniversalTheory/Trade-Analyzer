@@ -3810,31 +3810,27 @@ body {
    PHASE A — VISUAL OVERHAUL: Palette · Glassmorphism · Glow Cards
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── Body: Rich Deep Gradient Background ── */
+/* ── Body: Static deep gradient — rendered once, zero per-frame GPU cost ── */
 body {
   background:
-    radial-gradient(ellipse 80% 50% at 15% -10%, rgba(59, 130, 246, 0.15) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 85% 110%, rgba(139, 92, 246, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 15% 0%,   rgba(59, 130, 246, 0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 45% at 85% 100%, rgba(139, 92, 246, 0.07) 0%, transparent 60%),
     #04080f;
   background-attachment: fixed;
 }
 
-/* ── Header: Glassmorphism ── */
+/* ── Header ── */
 .header {
-  background: rgba(4, 8, 16, 0.82);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(4, 8, 16, 0.96);
   border-bottom: 1px solid rgba(80, 120, 200, 0.15);
   box-shadow:
     0 1px 0 rgba(120, 160, 255, 0.05),
     0 4px 24px rgba(0, 0, 0, 0.5);
 }
 
-/* ── Tab Nav: Glass ── */
+/* ── Tab Nav ── */
 .tab-nav {
-  background: rgba(6, 10, 22, 0.72);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(6, 10, 22, 0.85);
   border: 1px solid rgba(80, 120, 200, 0.14);
 }
 
@@ -3844,19 +3840,18 @@ body {
   box-shadow: 0 0 14px rgba(59, 130, 246, 0.18);
 }
 
-/* ── Sub-tab Nav: Glass ── */
+/* ── Sub-tab Nav ── */
 .sub-tab-nav {
-  background: rgba(4, 8, 18, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(4, 8, 18, 0.94);
   border-bottom: 1px solid rgba(80, 120, 200, 0.12);
 }
 
-/* ── Primary Glass Card Surfaces ──
-   All major panel/card containers get the full glass + glow treatment.
+/* ── Primary Card Surfaces ──
+   No backdrop-filter on content cards — the GPU cost of re-blurring
+   every card every frame while the ambient blobs animate is too high.
+   Glow borders + dark semi-transparent bg maintain the premium feel.
 ── */
 .result-card,
-.input-panel,
 .interpretation-box,
 .empty-state,
 .index-card,
@@ -3877,19 +3872,20 @@ body {
 .technicals-panel,
 .options-chain-card,
 .trade-recs-card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(8, 13, 26, 0.82);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glow-card);
-  transition: box-shadow 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
-/* ── Input Panel: Darker, more opaque (form readability) ── */
+/* ── Input Panel: Backdrop-filter kept — sticky sidebar, isolated compositing ── */
 .input-panel {
-  background: var(--glass-bg-dark);
+  background: rgba(5, 9, 20, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glow-card);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 /* ── Index Cards: directional glow tints ── */
@@ -3911,7 +3907,7 @@ body {
     0 0 50px rgba(239, 68, 68, 0.14);
 }
 
-/* ── Content Card Hover Lift (excludes input/empty-state) ── */
+/* ── Content Card Hover — border + glow brighten only, no transform ── */
 .result-card:hover,
 .interpretation-box:hover,
 .index-card:hover,
@@ -3932,9 +3928,8 @@ body {
 .technicals-panel:hover,
 .options-chain-card:hover,
 .trade-recs-card:hover {
-  border-color: rgba(80, 130, 220, 0.32);
+  border-color: rgba(80, 130, 220, 0.38);
   box-shadow: var(--glow-card-hover);
-  transform: translateY(-2px);
 }
 
 /* ── Inner / Nested Surfaces ── */
@@ -3944,17 +3939,13 @@ body {
 .greek-card,
 .earnings-card,
 .trade-rec-item {
-  background: var(--glass-bg-inner);
+  background: rgba(5, 9, 18, 0.75);
   border: 1px solid var(--glass-border-dim);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 /* ── Symbol Search: Glass ── */
 .symbol-search-input-wrap {
-  background: rgba(6, 10, 22, 0.72);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(6, 10, 22, 0.85);
   border: 1px solid var(--glass-border);
 }
 
