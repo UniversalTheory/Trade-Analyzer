@@ -1,11 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --bg-primary: #0a0e17;
-  --bg-secondary: #111827;
-  --bg-card: #151d2e;
-  --bg-input: #0d1320;
-  --border-primary: #1e2a3a;
+  --bg-primary: #04080f;
+  --bg-secondary: #07101e;
+  --bg-card: #0d1525;
+  --bg-input: #060a14;
+  --border-primary: #1a2844;
   --border-focus: #3b82f6;
   --text-primary: #e2e8f0;
   --text-secondary: #94a3b8;
@@ -31,6 +31,23 @@
   --color-orange: #f97316;
   --color-purple: #8b5cf6;
   --color-cyan:   #06b6d4;
+
+  /* Phase A — Glass & Glow System */
+  --glass-bg:         rgba(10, 16, 30, 0.62);
+  --glass-bg-dark:    rgba(5, 9, 20, 0.75);
+  --glass-bg-inner:   rgba(6, 10, 22, 0.65);
+  --glass-border:     rgba(80, 120, 200, 0.26);
+  --glass-border-dim: rgba(50, 80, 140, 0.28);
+  --glow-card:
+    inset 0 1px 0 rgba(160, 200, 255, 0.10),
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(80, 130, 255, 0.10),
+    0 0 60px rgba(59, 130, 246, 0.16);
+  --glow-card-hover:
+    inset 0 1px 0 rgba(160, 200, 255, 0.16),
+    0 14px 48px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(80, 130, 255, 0.18),
+    0 0 90px rgba(59, 130, 246, 0.24);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -3786,5 +3803,246 @@ body {
   width: 32px;
   height: 32px;
   border-width: 3px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   PHASE A — VISUAL OVERHAUL: Palette · Glassmorphism · Glow Cards
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Body: Rich Deep Gradient Background ── */
+body {
+  background:
+    radial-gradient(ellipse 80% 50% at 15% -10%, rgba(59, 130, 246, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 85% 110%, rgba(139, 92, 246, 0.10) 0%, transparent 55%),
+    #04080f;
+  background-attachment: fixed;
+}
+
+/* ── Header: Glassmorphism ── */
+.header {
+  background: rgba(4, 8, 16, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(80, 120, 200, 0.15);
+  box-shadow:
+    0 1px 0 rgba(120, 160, 255, 0.05),
+    0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Tab Nav: Glass ── */
+.tab-nav {
+  background: rgba(6, 10, 22, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(80, 120, 200, 0.14);
+}
+
+.tab-btn.active {
+  background: rgba(59, 130, 246, 0.13);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.18);
+}
+
+/* ── Sub-tab Nav: Glass ── */
+.sub-tab-nav {
+  background: rgba(4, 8, 18, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(80, 120, 200, 0.12);
+}
+
+/* ── Primary Glass Card Surfaces ──
+   All major panel/card containers get the full glass + glow treatment.
+── */
+.result-card,
+.input-panel,
+.interpretation-box,
+.empty-state,
+.index-card,
+.global-panel,
+.panel-card,
+.macro-panel,
+.movers-panel,
+.news-panel,
+.sector-overview-panel,
+.momentum-panel,
+.gauge-panel,
+.sector-news-panel,
+.asset-profile-card,
+.fundamentals-card,
+.filings-card,
+.ticker-quote-card,
+.price-chart-card,
+.technicals-panel,
+.options-chain-card,
+.trade-recs-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glow-card);
+  transition: box-shadow 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
+}
+
+/* ── Input Panel: Darker, more opaque (form readability) ── */
+.input-panel {
+  background: var(--glass-bg-dark);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ── Index Cards: directional glow tints ── */
+.index-card.up {
+  border-color: rgba(34, 197, 94, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(34, 197, 94, 0.12),
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(34, 197, 94, 0.10),
+    0 0 50px rgba(34, 197, 94, 0.16);
+}
+
+.index-card.down {
+  border-color: rgba(239, 68, 68, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(239, 68, 68, 0.12),
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(239, 68, 68, 0.10),
+    0 0 50px rgba(239, 68, 68, 0.14);
+}
+
+/* ── Content Card Hover Lift (excludes input/empty-state) ── */
+.result-card:hover,
+.interpretation-box:hover,
+.index-card:hover,
+.global-panel:hover,
+.panel-card:hover,
+.macro-panel:hover,
+.movers-panel:hover,
+.news-panel:hover,
+.sector-overview-panel:hover,
+.momentum-panel:hover,
+.gauge-panel:hover,
+.sector-news-panel:hover,
+.asset-profile-card:hover,
+.fundamentals-card:hover,
+.filings-card:hover,
+.ticker-quote-card:hover,
+.price-chart-card:hover,
+.technicals-panel:hover,
+.options-chain-card:hover,
+.trade-recs-card:hover {
+  border-color: rgba(80, 130, 220, 0.32);
+  box-shadow: var(--glow-card-hover);
+  transform: translateY(-2px);
+}
+
+/* ── Inner / Nested Surfaces ── */
+.result-item,
+.macro-card,
+.perf-badge,
+.greek-card,
+.earnings-card,
+.trade-rec-item {
+  background: var(--glass-bg-inner);
+  border: 1px solid var(--glass-border-dim);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ── Symbol Search: Glass ── */
+.symbol-search-input-wrap {
+  background: rgba(6, 10, 22, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}
+
+.symbol-search-input-wrap:focus-within {
+  border-color: rgba(59, 130, 246, 0.50);
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.10),
+    0 0 20px rgba(59, 130, 246, 0.14);
+}
+
+.symbol-search-dropdown {
+  background: rgba(5, 9, 20, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(80, 120, 200, 0.22);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 0 30px rgba(59, 130, 246, 0.08);
+}
+
+/* ── Form Inputs: Glass ── */
+.form-input,
+.form-select {
+  background: rgba(4, 7, 15, 0.75);
+  border: 1px solid rgba(50, 80, 140, 0.32);
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.08),
+    0 0 16px rgba(59, 130, 246, 0.10);
+}
+
+/* ── Watchlist Input: Glass ── */
+.watchlist-input {
+  background: rgba(6, 10, 20, 0.70);
+  border: 1px solid rgba(50, 80, 140, 0.26);
+}
+
+/* ── Sector Select: Glass ── */
+.sector-select {
+  background-color: rgba(8, 14, 26, 0.72);
+  border: 1px solid var(--glass-border);
+}
+
+/* ── Analyze Button: Enhanced Glow ── */
+.btn-analyze {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  box-shadow:
+    0 4px 20px rgba(59, 130, 246, 0.28),
+    0 0 30px rgba(124, 58, 237, 0.16);
+  transition: opacity 0.2s, transform 0.1s, box-shadow 0.25s;
+}
+
+.btn-analyze:hover {
+  opacity: 1;
+  box-shadow:
+    0 6px 32px rgba(59, 130, 246, 0.40),
+    0 0 50px rgba(124, 58, 237, 0.24);
+}
+
+/* ── Chart Tooltip: Glass ── */
+.chart-tooltip {
+  background: rgba(5, 9, 20, 0.90);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(80, 120, 200, 0.22);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+/* ── Options Table Hover ── */
+.options-row:hover td {
+  background: rgba(59, 130, 246, 0.07);
+}
+
+/* ── Loading Skeleton: Updated for dark bg ── */
+.loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    rgba(255, 255, 255, 0.05) 50%,
+    var(--bg-secondary) 75%
+  );
+}
+
+/* ── Index Card Skeleton: Glass ── */
+.index-card-skeleton {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
 }
 
