@@ -48,14 +48,37 @@ export function useRevealObserver(activeTab: string) {
         document.querySelectorAll<HTMLElement>(CARD_SELECTOR)
       ).filter(el => el.offsetParent !== null);
 
+      // Reset any previously-revealed cards so they animate again on this tab visit
+      cards.forEach(card => {
+        card.classList.remove('was-revealed', 'is-revealed');
+        card.style.animationDelay = '';
+      });
+
       cards.forEach((card, i) => {
-        if (card.classList.contains('is-revealed')) return;
+
         card.classList.add('reveal-pending');
         card.style.animationDelay = `${Math.min(i * STAGGER_MS, MAX_STAGGER_MS)}ms`;
-        // Reveal immediately — stagger is handled by animation-delay alone
+
         requestAnimationFrame(() => {
           card.classList.remove('reveal-pending');
           card.classList.add('is-revealed');
+
+          // After card-enter completes, swap is-revealed → was-revealed.
+          // This releases animation-fill-mode control over `transform`,
+          // which otherwise overrides the hover lift (transform: translateY(-2px)).
+          //
+          // Must filter by animationName AND target: animationend bubbles,
+          // so child element animations (shimmer, live-pulse, etc.) would
+          // otherwise trigger this prematurely.
+          const onAnimEnd = (e: Event) => {
+            const ae = e as AnimationEvent;
+            if (e.target !== card || ae.animationName !== 'card-enter') return;
+            card.classList.remove('is-revealed');
+            card.classList.add('was-revealed');
+            card.style.animationDelay = '';
+            card.removeEventListener('animationend', onAnimEnd);
+          };
+          card.addEventListener('animationend', onAnimEnd);
         });
       });
     }, 60);
