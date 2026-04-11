@@ -570,13 +570,14 @@ body {
 
 .sub-tab-content {
   flex: 1;
+  padding-top: 24px;
 }
 
 /* Override tab-panel class that existing components use */
 .sub-tab-content .tab-panel {
   display: grid;
   grid-template-columns: 380px 1fr;
-  gap: 0;
+  gap: 24px;
   align-items: start;
   min-height: calc(100vh - 130px);
 }
@@ -585,7 +586,7 @@ body {
 .tab-layout {
   display: grid;
   grid-template-columns: 380px 1fr;
-  gap: 0;
+  gap: 24px;
   align-items: start;
   min-height: calc(100vh - 130px);
 }
@@ -3885,7 +3886,8 @@ body {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glow-card);
-  position: relative;
+  position: sticky;
+  top: 88px;
   transition: border-color 0.25s ease;
 }
 
