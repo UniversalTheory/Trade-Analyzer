@@ -38,16 +38,15 @@
   --glass-bg-inner:   rgba(6, 10, 22, 0.65);
   --glass-border:     rgba(80, 120, 200, 0.26);
   --glass-border-dim: rgba(50, 80, 140, 0.28);
+  /* Static card shadow — rendered once and cached, never transitions */
   --glow-card:
-    inset 0 1px 0 rgba(160, 200, 255, 0.10),
-    0 8px 32px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(80, 130, 255, 0.10),
-    0 0 60px rgba(59, 130, 246, 0.16);
-  --glow-card-hover:
-    inset 0 1px 0 rgba(160, 200, 255, 0.16),
-    0 14px 48px rgba(0, 0, 0, 0.65),
-    0 0 0 1px rgba(80, 130, 255, 0.18),
-    0 0 90px rgba(59, 130, 246, 0.24);
+    inset 0 1px 0 rgba(160, 200, 255, 0.08),
+    0 6px 24px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(80, 130, 255, 0.10);
+  /* Hover glow — lives on ::after pseudo-element, only opacity transitions */
+  --glow-hover:
+    0 0 50px rgba(59, 130, 246, 0.24),
+    0 0 0 1px rgba(80, 130, 255, 0.24);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -3875,7 +3874,8 @@ body {
   background: rgba(8, 13, 26, 0.82);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glow-card);
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  position: relative;
+  transition: border-color 0.25s ease;
 }
 
 /* ── Input Panel: Backdrop-filter kept — sticky sidebar, isolated compositing ── */
@@ -3885,7 +3885,8 @@ body {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glow-card);
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  position: relative;
+  transition: border-color 0.25s ease;
 }
 
 /* ── Index Cards: directional glow tints ── */
@@ -3907,7 +3908,7 @@ body {
     0 0 50px rgba(239, 68, 68, 0.14);
 }
 
-/* ── Content Card Hover — border + glow brighten only, no transform ── */
+/* ── Card Hover — border brightens (cheap color transition only) ── */
 .result-card:hover,
 .interpretation-box:hover,
 .index-card:hover,
@@ -3928,9 +3929,68 @@ body {
 .technicals-panel:hover,
 .options-chain-card:hover,
 .trade-recs-card:hover {
-  border-color: rgba(80, 130, 220, 0.38);
-  box-shadow: var(--glow-card-hover);
+  border-color: rgba(80, 130, 220, 0.40);
 }
+
+/* ── Card Hover Glow — pre-rendered ::after, fades via opacity only ──
+   Box-shadow is static on ::after (cached). Only opacity transitions —
+   handled entirely by the compositor, no per-frame GPU rasterization.
+── */
+.result-card::after,
+.interpretation-box::after,
+.index-card::after,
+.global-panel::after,
+.panel-card::after,
+.macro-panel::after,
+.movers-panel::after,
+.news-panel::after,
+.sector-overview-panel::after,
+.momentum-panel::after,
+.gauge-panel::after,
+.sector-news-panel::after,
+.asset-profile-card::after,
+.fundamentals-card::after,
+.filings-card::after,
+.ticker-quote-card::after,
+.price-chart-card::after,
+.technicals-panel::after,
+.options-chain-card::after,
+.trade-recs-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--glow-hover);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.result-card:hover::after,
+.interpretation-box:hover::after,
+.index-card:hover::after,
+.global-panel:hover::after,
+.panel-card:hover::after,
+.macro-panel:hover::after,
+.movers-panel:hover::after,
+.news-panel:hover::after,
+.sector-overview-panel:hover::after,
+.momentum-panel:hover::after,
+.gauge-panel:hover::after,
+.sector-news-panel:hover::after,
+.asset-profile-card:hover::after,
+.fundamentals-card:hover::after,
+.filings-card:hover::after,
+.ticker-quote-card:hover::after,
+.price-chart-card:hover::after,
+.technicals-panel:hover::after,
+.options-chain-card:hover::after,
+.trade-recs-card:hover::after {
+  opacity: 1;
+}
+
+/* Allow glow to extend beyond card bounds */
+.index-card { overflow: visible; }
 
 /* ── Inner / Nested Surfaces ── */
 .result-item,
