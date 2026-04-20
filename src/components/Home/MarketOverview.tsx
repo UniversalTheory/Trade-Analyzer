@@ -138,6 +138,7 @@ export default function MarketOverview() {
                 sectors={sectors.data ?? []}
                 indices={indices.data ?? []}
                 news={news.data ?? []}
+                newsError={!!news.error}
                 events={calendar.data?.events ?? []}
                 calendarUnavailable={calendar.data?.unavailable}
               />

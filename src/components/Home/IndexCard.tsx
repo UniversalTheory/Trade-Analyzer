@@ -43,9 +43,7 @@ function vixLabel(price: number): { label: string; color: string } {
 
 export default function IndexCard({ quote, history, isVix }: Props) {
   const up = quote.changePercent >= 0;
-  const color = isVix
-    ? (quote.price < 20 ? 'var(--color-green)' : quote.price < 30 ? 'var(--color-yellow)' : 'var(--color-red)')
-    : (up ? 'var(--color-green)' : 'var(--color-red)');
+  const color = up ? 'var(--color-green)' : 'var(--color-red)';
 
   const displayName = DISPLAY_NAMES[quote.symbol] ?? quote.symbol;
   const vix = isVix ? vixLabel(quote.price) : null;
@@ -54,7 +52,7 @@ export default function IndexCard({ quote, history, isVix }: Props) {
   const sparkData = history?.slice(-30).map(b => ({ v: b.close })) ?? [];
 
   return (
-    <div className={`index-card ${up && !isVix ? 'up' : !up && !isVix ? 'down' : ''}`}>
+    <div className={`index-card ${up ? 'up' : 'down'}`}>
       <div className="index-card-header">
         <div>
           <div className="index-card-name">{displayName}</div>

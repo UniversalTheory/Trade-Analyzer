@@ -7,6 +7,7 @@ interface Props {
   sectors: SectorPerformance[];
   indices: QuoteData[];
   news: NewsItem[];
+  newsError?: boolean;
   events: EconomicEvent[];
   calendarUnavailable?: boolean;
 }
@@ -51,7 +52,7 @@ function topSectors(sectors: SectorPerformance[]): { best: SectorPerformance | n
   return { best: sorted[0], worst: sorted[sorted.length - 1] };
 }
 
-export default function MacroIndicators({ vix, sectors, indices, news, events, calendarUnavailable }: Props) {
+export default function MacroIndicators({ vix, sectors, indices, news, newsError, events, calendarUnavailable }: Props) {
   const vixData = vix ? vixInterpretation(vix.price) : null;
   const sentiment = marketSentiment(indices);
   const { best, worst } = topSectors(sectors);
@@ -189,7 +190,7 @@ export default function MacroIndicators({ vix, sectors, indices, news, events, c
       <div className="macro-bottom-row">
         <div className="macro-card macro-card--news">
           <div className="macro-card-label">Market News</div>
-          <MarketNews news={news} compact />
+          <MarketNews news={news} newsError={newsError} compact />
         </div>
         <div className="macro-card macro-card--news">
           <div className="macro-card-label">Economic Calendar</div>
