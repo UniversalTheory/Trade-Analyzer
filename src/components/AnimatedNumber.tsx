@@ -1,38 +1,38 @@
 import { useEffect, useRef, useState } from 'react';
+import { pulseValue } from '../utils/pulseValue';
 
 interface Props {
   value: number;
-  /** Animation duration in ms */
   duration?: number;
   decimals?: number;
+  /** When provided, overrides decimals and formats the animated number with locale-aware formatting */
+  format?: (n: number) => string;
   prefix?: string;
   suffix?: string;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-/**
- * Counts from the previous value to the new value with an ease-out animation.
- * Use in place of any static price/number display that receives live updates.
- *
- * Example:
- *   <AnimatedNumber value={price} decimals={2} prefix="$" className="ticker-quote-price" />
- */
-export function AnimatedNumber({ value, duration = 500, decimals = 2, prefix = '', suffix = '', className }: Props) {
+export function AnimatedNumber({ value, duration = 500, decimals = 2, format, prefix = '', suffix = '', className, style }: Props) {
   const [display, setDisplay] = useState(value);
-  const prevRef  = useRef(value);
-  const rafRef   = useRef<number>(0);
+  const prevRef = useRef(value);
+  const rafRef  = useRef<number>(0);
+  const spanRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const from = prevRef.current;
     const to   = value;
     if (from === to) return;
 
+    if (spanRef.current) {
+      pulseValue(spanRef.current, to > from ? 'up' : 'down');
+    }
+
     const startTime = performance.now();
 
     const tick = (now: number) => {
       const elapsed  = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease-out cubic
       const eased    = 1 - Math.pow(1 - progress, 3);
       setDisplay(from + (to - from) * eased);
 
@@ -48,9 +48,11 @@ export function AnimatedNumber({ value, duration = 500, decimals = 2, prefix = '
     return () => cancelAnimationFrame(rafRef.current);
   }, [value, duration]);
 
+  const formatted = format ? format(display) : display.toFixed(decimals);
+
   return (
-    <span className={className}>
-      {prefix}{display.toFixed(decimals)}{suffix}
+    <span ref={spanRef} className={className} style={style}>
+      {prefix}{formatted}{suffix}
     </span>
   );
 }

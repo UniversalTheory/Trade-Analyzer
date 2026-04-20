@@ -29,7 +29,9 @@ export function useApi<T>(
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
-    setState({ data: null, loading: true, error: null });
+    // Keep stale data visible while re-fetching so mounted components (and their
+    // AnimatedNumber instances) aren't destroyed between refresh cycles.
+    setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
       const data = await fetcher();
@@ -38,7 +40,8 @@ export function useApi<T>(
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       const message = err.message || 'An error occurred';
-      setState(prev => ({ ...prev, loading: false, error: message }));
+      // Clear data on error so stale values aren't silently shown as current.
+      setState({ data: null, loading: false, error: message });
     }
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
 

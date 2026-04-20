@@ -1,5 +1,6 @@
 import type { QuoteData } from '../../api/types';
 import LoadingState from '../common/LoadingState';
+import { AnimatedNumber } from '../AnimatedNumber';
 
 interface Props {
   quotes: QuoteData[];
@@ -58,7 +59,9 @@ export default function CommoditiesPanel({ quotes, loading }: Props) {
                   <span className="global-row-label">{meta?.name ?? q.symbol}</span>
                   <span className="global-row-sub">{q.symbol} · {meta?.unit}</span>
                 </div>
-                <span className="global-row-price ta-right">${fmt(q.price)}</span>
+                <span className="global-row-price ta-right">
+                  <AnimatedNumber value={q.price} format={fmt} prefix="$" />
+                </span>
                 <span className="global-row-change ta-right" style={{ color }}>
                   {up ? '+' : ''}{q.changePercent.toFixed(2)}%
                 </span>
@@ -77,7 +80,9 @@ export default function CommoditiesPanel({ quotes, loading }: Props) {
                   <span className="global-row-label">{meta?.name ?? q.symbol}</span>
                   <span className="global-row-sub">{q.symbol} · {meta?.unit}</span>
                 </div>
-                <span className="global-row-price ta-right">${fmt(q.price)}</span>
+                <span className="global-row-price ta-right">
+                  <AnimatedNumber value={q.price} format={fmt} prefix="$" />
+                </span>
                 <span className="global-row-change ta-right" style={{ color }}>
                   {up ? '+' : ''}{q.changePercent.toFixed(2)}%
                 </span>
@@ -96,7 +101,9 @@ export default function CommoditiesPanel({ quotes, loading }: Props) {
                   <span className="global-row-label">{meta?.name ?? q.symbol}</span>
                   <span className="global-row-sub">{q.symbol} · {meta?.unit}</span>
                 </div>
-                <span className="global-row-price ta-right">${fmt(q.price)}</span>
+                <span className="global-row-price ta-right">
+                  <AnimatedNumber value={q.price} format={fmt} prefix="$" />
+                </span>
                 <span className="global-row-change ta-right" style={{ color }}>
                   {up ? '+' : ''}{q.changePercent.toFixed(2)}%
                 </span>

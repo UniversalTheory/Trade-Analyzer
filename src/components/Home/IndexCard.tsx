@@ -1,5 +1,6 @@
 import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
 import type { QuoteData, PriceBar } from '../../api/types';
+import { AnimatedNumber } from '../AnimatedNumber';
 
 interface Props {
   quote: QuoteData;
@@ -71,7 +72,7 @@ export default function IndexCard({ quote, history, isVix }: Props) {
       </div>
 
       <div className="index-card-price" style={{ color }}>
-        {quote.price.toFixed(2)}
+        <AnimatedNumber value={quote.price} decimals={2} />
       </div>
 
       <div className="index-card-change">

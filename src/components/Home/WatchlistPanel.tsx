@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { AnimatedNumber } from '../AnimatedNumber';
 import { ticker } from '../../api/client';
 import type { QuoteData } from '../../api/types';
 
@@ -153,7 +154,7 @@ export default function WatchlistPanel({ refreshKey }: Props) {
                   {q ? `$${fmt(q.low)}` : '—'}
                 </span>
                 <span className="global-row-price ta-right">
-                  {q ? `$${fmt(q.price)}` : '—'}
+                  {q ? <AnimatedNumber value={q.price} format={fmt} prefix="$" /> : '—'}
                 </span>
                 <span className="global-row-change ta-right" style={{ color }}>
                   {q ? `${up ? '+' : ''}${q.changePercent.toFixed(2)}%` : '—'}

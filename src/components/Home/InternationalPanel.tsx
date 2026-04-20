@@ -1,5 +1,6 @@
 import type { QuoteData } from '../../api/types';
 import LoadingState from '../common/LoadingState';
+import { AnimatedNumber } from '../AnimatedNumber';
 
 interface Props {
   quotes: QuoteData[];
@@ -79,7 +80,9 @@ function IndexRow({ q }: { q: QuoteData }) {
           {open ? 'Open' : 'Closed'} · {localTime}
         </span>
       </div>
-      <span className="global-row-price ta-right">{fmt(q.price)}</span>
+      <span className="global-row-price ta-right">
+        <AnimatedNumber value={q.price} format={fmt} />
+      </span>
       <span className="global-row-change ta-right" style={{ color }}>
         {up ? '+' : ''}{q.changePercent.toFixed(2)}%
       </span>
