@@ -2771,6 +2771,7 @@ body {
 
 /* ── Earnings Card ── */
 .earnings-card {
+  position: relative;
   background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
   border-radius: 10px;
@@ -2819,6 +2820,96 @@ body {
   border: 1px solid rgba(59, 130, 246, 0.25);
   border-radius: 4px;
   padding: 1px 6px;
+}
+
+.earnings-next-panel {
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.earnings-next-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+.earnings-next-panel-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.earnings-next-val--tbd {
+  color: var(--text-muted) !important;
+  font-style: italic;
+}
+
+.earnings-calltime {
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 1px 7px;
+  letter-spacing: 0.02em;
+}
+
+.earnings-calltime--bmo {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+}
+
+.earnings-calltime--amc {
+  background: rgba(139, 92, 246, 0.14);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.28);
+}
+
+.earnings-calltime--dmh {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.earnings-estimates-row {
+  display: flex;
+  gap: 20px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  flex-wrap: wrap;
+}
+
+.earnings-estimate-block {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.earnings-estimate-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.earnings-estimate-avg {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.earnings-estimate-range {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .earnings-section-label {
@@ -3957,7 +4048,8 @@ body {
 .price-chart-card::after,
 .technicals-panel::after,
 .options-chain-card::after,
-.trade-recs-card::after {
+.trade-recs-card::after,
+.earnings-card::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -3987,7 +4079,8 @@ body {
 .price-chart-card:hover::after,
 .technicals-panel:hover::after,
 .options-chain-card:hover::after,
-.trade-recs-card:hover::after {
+.trade-recs-card:hover::after,
+.earnings-card:hover::after {
   opacity: 1;
 }
 

@@ -273,10 +273,21 @@ router.get('/:symbol/earnings', async (req, res) => {
           return m ? `Q${m[1]} '${m[2].slice(2)}` : s;
         };
 
+        // Handles Date objects (yahoo-finance2 zod), ISO strings, and Unix timestamps
         const tsToDate = (ts: any): string | undefined => {
+          if (ts instanceof Date) return ts.toISOString().split('T')[0];
+          if (typeof ts === 'string' && ts.includes('T')) return ts.split('T')[0];
+          if (typeof ts === 'string') return ts;
           const raw = typeof ts === 'number' ? ts : n(ts);
           if (!raw) return undefined;
           return new Date(raw * 1000).toISOString().split('T')[0];
+        };
+
+        const toDate = (ts: any): Date | undefined => {
+          if (ts instanceof Date) return ts;
+          if (typeof ts === 'string') return new Date(ts);
+          const raw = typeof ts === 'number' ? ts : n(ts);
+          return raw ? new Date(raw * 1000) : undefined;
         };
 
         // earningsChart.quarterly: {date:"1Q2025", actual, estimate, surprisePct:"1.69"}
@@ -290,6 +301,35 @@ router.get('/:symbol/earnings', async (req, res) => {
         const dateSources = cal.earningsDate ?? echart.earningsDate ?? [];
         const nextEarningsDate    = tsToDate(dateSources[0]);
         const nextEarningsDateEnd = tsToDate(dateSources[1]);
+
+        // Derive call time from the datetime if no explicit field
+        // UTC hour: <14 = BMO (before ~9:30 AM ET), >=18 = AMC (after ~2 PM ET)
+        const earningsCallTime = (() => {
+          const rawCallTime = cal.earningsCallTime;
+          if (typeof rawCallTime === 'string') return rawCallTime;
+          if (rawCallTime?.fmt || rawCallTime?.raw) return rawCallTime.fmt ?? rawCallTime.raw;
+          const dt = toDate(dateSources[0]);
+          if (!dt) return undefined;
+          const h = dt.getUTCHours();
+          if (h < 14) return 'bmo';
+          if (h >= 18) return 'amc';
+          return 'dmh';
+        })();
+
+        // Analyst EPS + revenue estimates
+        const epsAvg = n(cal.earningsAverage);
+        const epsEstimate = epsAvg != null ? {
+          avg:  epsAvg,
+          low:  n(cal.earningsLow)  ?? epsAvg,
+          high: n(cal.earningsHigh) ?? epsAvg,
+        } : undefined;
+
+        const revAvg = n(cal.revenueAverage);
+        const revenueEstimate = revAvg != null ? {
+          avg:  revAvg,
+          low:  n(cal.revenueLow)  ?? revAvg,
+          high: n(cal.revenueHigh) ?? revAvg,
+        } : undefined;
 
         // Revenue keyed by the same date string used in earningsChart ("1Q2025")
         const revenueByDate: Record<string, number> = {};
@@ -320,7 +360,7 @@ router.get('/:symbol/earnings', async (req, res) => {
           .filter((q: any) => q.period && q.epsActual != null)
           .reverse(); // chronological: oldest left, newest right
 
-        return { symbol, nextEarningsDate, nextEarningsDateEnd, quarters };
+        return { symbol, nextEarningsDate, nextEarningsDateEnd, earningsCallTime, epsEstimate, revenueEstimate, quarters };
       },
     );
     res.json(data);

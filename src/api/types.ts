@@ -183,10 +183,19 @@ export interface EarningsQuarter {
   revenueActual?: number;   // in raw dollars
 }
 
+export interface EarningsEstimate {
+  avg: number;
+  low: number;
+  high: number;
+}
+
 export interface EarningsData {
   symbol: string;
   nextEarningsDate?: string;     // ISO date string (YYYY-MM-DD)
   nextEarningsDateEnd?: string;  // end of window if range
+  earningsCallTime?: string;     // "bmo" | "amc" | "dmh" | "ath"
+  epsEstimate?: EarningsEstimate;
+  revenueEstimate?: EarningsEstimate;
   quarters: EarningsQuarter[];   // chronological order, oldest → newest
 }
 

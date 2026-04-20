@@ -1,4 +1,4 @@
-import type { EarningsData, EarningsQuarter } from '../../api/types';
+import type { EarningsData, EarningsEstimate, EarningsQuarter } from '../../api/types';
 
 interface Props {
   data: EarningsData;
@@ -16,6 +16,19 @@ function fmtRevenue(val: number): string {
 function fmtDate(iso: string): string {
   const d = new Date(iso + 'T00:00:00');
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function fmtEps(val: number): string {
+  return (val >= 0 ? '$' : '-$') + Math.abs(val).toFixed(2);
+}
+
+function callTimeLabel(ct: string): { label: string; cls: string } {
+  switch (ct.toLowerCase()) {
+    case 'bmo': return { label: 'Before Open',  cls: 'earnings-calltime--bmo' };
+    case 'amc': return { label: 'After Close',  cls: 'earnings-calltime--amc' };
+    case 'dmh': return { label: 'During Hours', cls: 'earnings-calltime--dmh' };
+    default:    return { label: ct.toUpperCase(), cls: '' };
+  }
 }
 
 // ── EPS Bar Chart ─────────────────────────────────────────────────────────────
@@ -182,7 +195,7 @@ function RevenueChart({ quarters }: { quarters: EarningsQuarter[] }) {
 // ── Main Card ─────────────────────────────────────────────────────────────────
 
 export default function EarningsCard({ data }: Props) {
-  const { quarters, nextEarningsDate, nextEarningsDateEnd } = data;
+  const { quarters, nextEarningsDate, nextEarningsDateEnd, earningsCallTime, epsEstimate, revenueEstimate } = data;
 
   const hasRevenue = quarters.some(q => q.revenueActual != null);
 
@@ -192,29 +205,69 @@ export default function EarningsCard({ data }: Props) {
       : fmtDate(nextEarningsDate)
     : null;
 
-  // Days until next earnings
   let daysUntil: number | null = null;
   if (nextEarningsDate) {
     const diff = new Date(nextEarningsDate + 'T00:00:00').getTime() - Date.now();
     daysUntil = Math.ceil(diff / (1000 * 60 * 60 * 24));
   }
 
+  const callTime = earningsCallTime ? callTimeLabel(earningsCallTime) : null;
+
   return (
     <div className="earnings-card">
       <div className="earnings-header">
         <div className="earnings-title">Earnings History</div>
-        {nextDateStr && (
-          <div className="earnings-next-date">
-            <span className="earnings-next-label">Next Report</span>
-            <span className="earnings-next-val">{nextDateStr}</span>
-            {daysUntil != null && daysUntil >= 0 && (
-              <span className="earnings-next-countdown">
-                {daysUntil === 0 ? 'Today' : `${daysUntil}d away`}
-              </span>
-            )}
-          </div>
-        )}
       </div>
+
+      {(nextDateStr || epsEstimate || revenueEstimate) && (
+        <div className="earnings-next-panel">
+          <div className="earnings-next-panel-row">
+            <div className="earnings-next-panel-left">
+              <span className="earnings-next-label">Next Report</span>
+              {nextDateStr ? (
+                <span className="earnings-next-val">{nextDateStr}</span>
+              ) : (
+                <span className="earnings-next-val earnings-next-val--tbd">Date TBD</span>
+              )}
+              {daysUntil != null && daysUntil >= 0 && (
+                <span className="earnings-next-countdown">
+                  {daysUntil === 0 ? 'Today' : `${daysUntil}d away`}
+                </span>
+              )}
+              {callTime && (
+                <span className={`earnings-calltime ${callTime.cls}`}>{callTime.label}</span>
+              )}
+            </div>
+          </div>
+
+          {(epsEstimate || revenueEstimate) && (
+            <div className="earnings-estimates-row">
+              {epsEstimate && (
+                <div className="earnings-estimate-block">
+                  <span className="earnings-estimate-label">EPS Est.</span>
+                  <span className="earnings-estimate-avg">{fmtEps(epsEstimate.avg)}</span>
+                  {(epsEstimate.low !== epsEstimate.avg || epsEstimate.high !== epsEstimate.avg) && (
+                    <span className="earnings-estimate-range">
+                      {fmtEps(epsEstimate.low)} – {fmtEps(epsEstimate.high)}
+                    </span>
+                  )}
+                </div>
+              )}
+              {revenueEstimate && (
+                <div className="earnings-estimate-block">
+                  <span className="earnings-estimate-label">Rev. Est.</span>
+                  <span className="earnings-estimate-avg">{fmtRevenue(revenueEstimate.avg)}</span>
+                  {(revenueEstimate.low !== revenueEstimate.avg || revenueEstimate.high !== revenueEstimate.avg) && (
+                    <span className="earnings-estimate-range">
+                      {fmtRevenue(revenueEstimate.low)} – {fmtRevenue(revenueEstimate.high)}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {quarters.length === 0 ? (
         <div className="earnings-empty">No earnings history available for this symbol.</div>
