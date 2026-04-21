@@ -14,6 +14,10 @@ import {
   analyzeDistribution, tradeVerdict, riskRewardRatio,
   type DistributionAnalysis, type Verdict,
 } from '../../utils/simulationAnalysis';
+import { selectStrikes, STRATEGY_BIAS } from '../../utils/strikeSelector';
+import MonteCarloComparison, {
+  type ComparisonPayload, type StrategyComparisonRow,
+} from './MonteCarloComparison';
 
 // ── Leg-field specification per strategy ─────────────────────────────────────
 
@@ -182,7 +186,10 @@ function fmtPct(x: number, decimals = 1): string {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
+type Mode = 'single' | 'compare';
+
 export default function MonteCarloSimulation() {
+  const [mode, setMode] = useState<Mode>('single');
   const [strategy, setStrategy] = useState<StrategyId>('Long Call');
   const [symbol, setSymbol] = useState('');
   const [fetching, setFetching] = useState(false);
@@ -198,6 +205,7 @@ export default function MonteCarloSimulation() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<SimResult | null>(null);
+  const [comparison, setComparison] = useState<ComparisonPayload | null>(null);
 
   const legSpecs = STRATEGY_LEGS[strategy];
   const mcSupported = supportsMonteCarloPayoff(strategy);
@@ -210,6 +218,14 @@ export default function MonteCarloSimulation() {
     setStrategy(next);
     setLegInputs({});
     setResult(null);
+    setError('');
+  }
+
+  function handleModeChange(next: Mode) {
+    if (next === mode) return;
+    setMode(next);
+    setResult(null);
+    setComparison(null);
     setError('');
   }
 
@@ -368,26 +384,153 @@ export default function MonteCarloSimulation() {
     }, 30);
   }
 
+  function handleRunComparison() {
+    setError('');
+    setComparison(null);
+    setResult(null);
+
+    const S0 = parseNum(spot);
+    const dteNum = parseNum(dte);
+    if (!S0 || S0 <= 0) { setError('Enter a valid spot price.'); return; }
+    if (!dteNum || dteNum <= 0) { setError('Enter a valid DTE.'); return; }
+
+    const T = dteNum / 365;
+    const steps = Math.max(1, Math.min(252, Math.round(dteNum)));
+    const paths = pathCount;
+    const driftDec = (parseNum(driftAnnual) ?? 0) / 100;
+
+    let volDec: number | undefined;
+    let returns: number[] | undefined;
+    if (volModel === 'gbm') {
+      const vPct = parseNum(volAnnual);
+      if (!vPct || vPct <= 0) { setError('Enter a valid annualised volatility (> 0).'); return; }
+      volDec = vPct / 100;
+    } else {
+      if (!histReturns || histReturns.length < 20) {
+        setError('Bootstrap requires historical returns. Fetch live data for a symbol first.');
+        return;
+      }
+      returns = histReturns;
+    }
+
+    // For strike selection we always need a representative volatility; when
+    // bootstrapping we fall back to the empirical annualised vol of the sample.
+    const volForStrikes = volDec ?? annualisedVol(returns!);
+
+    setRunning(true);
+    setTimeout(() => {
+      try {
+        const mc = simulatePricePaths({
+          model: volModel,
+          S0,
+          T,
+          steps,
+          paths,
+          driftAnnual: driftDec,
+          volAnnual: volDec,
+          histReturns: returns,
+          seed: 0xC0FFEE, // same seed as single-mode so every strategy sees identical paths
+        });
+
+        const rows: StrategyComparisonRow[] = [];
+        for (const strategyId of STRATEGIES) {
+          if (!supportsMonteCarloPayoff(strategyId)) continue;
+
+          const { legs, summary } = selectStrikes(strategyId, {
+            spot: S0,
+            volAnnual: volForStrikes,
+            dteDays: dteNum,
+          });
+
+          const pnlShare = payoffVector(strategyId, legs, mc.terminalPrices);
+          const pnlContract = new Float64Array(pnlShare.length);
+          for (let i = 0; i < pnlShare.length; i++) pnlContract[i] = pnlShare[i] * 100;
+
+          const analysis = analyzeDistribution(pnlContract);
+          const profile = profileFromPayoff(strategyId, legs, S0);
+          const rr = riskRewardRatio(analysis);
+          const verdict = tradeVerdict({ pop: analysis.pop, ev: analysis.meanPnl, rrRatio: rr });
+
+          rows.push({
+            strategy: strategyId,
+            bias: STRATEGY_BIAS[strategyId],
+            summary,
+            analysis,
+            rr,
+            verdict,
+            maxGainPerContract: profile.maxGainPerShare == null ? null : profile.maxGainPerShare * 100,
+            maxLossPerContract: profile.maxLossPerShare == null ? null : profile.maxLossPerShare * 100,
+          });
+        }
+
+        const volLabel = volModel === 'gbm'
+          ? `GBM σ=${((volDec ?? 0) * 100).toFixed(1)}% drift=${(driftDec * 100).toFixed(1)}%`
+          : `Bootstrap (${returns!.length} daily returns)`;
+
+        setComparison({
+          rows,
+          spot: S0,
+          dte: dteNum,
+          paths: mc.nPaths,
+          steps: mc.nSteps,
+          volSource: volLabel,
+          elapsedMs: mc.elapsedMs,
+        });
+      } catch (e: any) {
+        setError(e?.message ?? 'Comparison failed.');
+      } finally {
+        setRunning(false);
+      }
+    }, 30);
+  }
+
   return (
     <div className="tab-layout">
       <div className="input-panel">
         <div className="panel-title">Monte Carlo Simulation</div>
 
         <div className="form-group">
-          <label className="form-label">Strategy</label>
-          <select
-            className="form-input"
-            value={strategy}
-            onChange={(e) => handleStrategyChange(e.target.value as StrategyId)}
-          >
-            {STRATEGIES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          {!mcSupported && (
-            <div className="form-hint form-hint-warn">
-              Calendar Spread payoff at expiry requires BS re-pricing — not available in v1.
+          <label className="form-label">Mode</label>
+          <div className="toggle-group">
+            <button
+              type="button"
+              className={`toggle-btn ${mode === 'single' ? 'active' : ''}`}
+              onClick={() => handleModeChange('single')}
+            >
+              Single Strategy
+            </button>
+            <button
+              type="button"
+              className={`toggle-btn ${mode === 'compare' ? 'active' : ''}`}
+              onClick={() => handleModeChange('compare')}
+            >
+              Compare All
+            </button>
+          </div>
+          {mode === 'compare' && (
+            <div className="form-hint">
+              Auto-picks strikes at ATM / 5% / 10% OTM and runs every MC-capable strategy against one set of price paths.
             </div>
           )}
         </div>
+
+        {mode === 'single' && (
+          <div className="form-group">
+            <label className="form-label">Strategy</label>
+            <select
+              className="form-input"
+              value={strategy}
+              onChange={(e) => handleStrategyChange(e.target.value as StrategyId)}
+            >
+              {STRATEGIES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            {!mcSupported && (
+              <div className="form-hint form-hint-warn">
+                Calendar Spread payoff at expiry requires BS re-pricing — not available in v1.
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="form-group">
           <label className="form-label">Symbol (optional)</label>
@@ -442,7 +585,7 @@ export default function MonteCarloSimulation() {
           </div>
         </div>
 
-        {legSpecs.length > 0 && (
+        {mode === 'single' && legSpecs.length > 0 && (
           <div className="mc-legs-grid">
             {legSpecs.map(spec => (
               <div key={spec.key} className="form-group">
@@ -538,17 +681,29 @@ export default function MonteCarloSimulation() {
 
         {error && <div className="error-msg">{error}</div>}
 
-        <button
-          className="btn-analyze"
-          onClick={handleRun}
-          disabled={running || !mcSupported}
-        >
-          {running ? 'Running simulation…' : 'Run Simulation'}
-        </button>
+        {mode === 'single' ? (
+          <button
+            className="btn-analyze"
+            onClick={handleRun}
+            disabled={running || !mcSupported}
+          >
+            {running ? 'Running simulation…' : 'Run Simulation'}
+          </button>
+        ) : (
+          <button
+            className="btn-analyze"
+            onClick={handleRunComparison}
+            disabled={running}
+          >
+            {running ? 'Running comparison…' : 'Compare All Strategies'}
+          </button>
+        )}
       </div>
 
       <div className="results-panel">
-        {!result ? (
+        {mode === 'single' && result && <ResultsPane result={result} />}
+        {mode === 'compare' && comparison && <MonteCarloComparison payload={comparison} />}
+        {mode === 'single' && !result && (
           <div className="empty-state">
             <div className="empty-icon">◬</div>
             <div className="empty-title">Monte Carlo Simulation</div>
@@ -558,8 +713,17 @@ export default function MonteCarloSimulation() {
               probability of profit, VaR, and a go/no-go verdict.
             </div>
           </div>
-        ) : (
-          <ResultsPane result={result} />
+        )}
+        {mode === 'compare' && !comparison && (
+          <div className="empty-state">
+            <div className="empty-icon">◬</div>
+            <div className="empty-title">Strategy Comparison</div>
+            <div className="empty-desc">
+              Enter a spot, DTE, and volatility (or fetch a live symbol), then rank all 12 MC-capable
+              strategies by POP × EV against a single shared set of {pathCount.toLocaleString()} simulated
+              price paths. Strikes are auto-picked at ATM / 5% / 10% OTM and priced via Black-Scholes.
+            </div>
+          </div>
         )}
       </div>
     </div>
