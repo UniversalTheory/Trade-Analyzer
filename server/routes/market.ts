@@ -3,21 +3,33 @@ import { getProvider, cachedCall, TTLCache } from '../services/providerRegistry.
 
 const router = Router();
 
-// Curated FRED release IDs → impact level and typical ET release time
-// release_name comes from the FRED API response (more accurate than hardcoding)
-const FRED_RELEASE_META: Record<number, { impact: 'high' | 'medium'; timeET: string }> = {
-  50:  { impact: 'high',   timeET: '08:30' }, // Employment Situation (NFP, Unemployment, Wages)
-  10:  { impact: 'high',   timeET: '08:30' }, // Consumer Price Index (CPI)
-  246: { impact: 'high',   timeET: '08:30' }, // Producer Price Index (PPI)
-  53:  { impact: 'high',   timeET: '08:30' }, // Gross Domestic Product (GDP)
-  21:  { impact: 'high',   timeET: '08:30' }, // Personal Income & Outlays (PCE)
-  80:  { impact: 'high',   timeET: '08:30' }, // Retail Sales
-  72:  { impact: 'medium', timeET: '08:30' }, // Durable Goods Orders
-  11:  { impact: 'medium', timeET: '08:30' }, // Housing Starts
-  13:  { impact: 'medium', timeET: '09:15' }, // Industrial Production & Capacity Utilization
-  167: { impact: 'medium', timeET: '08:30' }, // Initial Jobless Claims
-  25:  { impact: 'medium', timeET: '08:30' }, // Trade Balance
-  144: { impact: 'medium', timeET: '10:00' }, // Consumer Sentiment (Univ. of Michigan)
+// Curated FRED release IDs → display name, impact level, and typical ET release time.
+// IDs verified via fred/series/release lookups. Names hardcoded for reliability.
+// NOTE: ISM Manufacturing/Services PMI and Conference Board Consumer Confidence exist
+// as FRED series but have no release_id, so they cannot be pulled via release/dates.
+const FRED_RELEASE_META: Record<number, { name: string; impact: 'high' | 'medium'; timeET: string }> = {
+  // ── Tier 1: major market movers ──────────────────────────────────────────
+  50:  { name: 'Employment Situation (NFP)',         impact: 'high',   timeET: '08:30' },
+  10:  { name: 'Consumer Price Index (CPI)',         impact: 'high',   timeET: '08:30' },
+  46:  { name: 'Producer Price Index (PPI)',         impact: 'high',   timeET: '08:30' },
+  53:  { name: 'Gross Domestic Product (GDP)',       impact: 'high',   timeET: '08:30' },
+  54:  { name: 'Personal Income & Outlays (PCE)',    impact: 'high',   timeET: '08:30' },
+  9:   { name: 'Retail Sales',                       impact: 'high',   timeET: '08:30' },
+  180: { name: 'Initial Jobless Claims',             impact: 'high',   timeET: '08:30' },
+  192: { name: 'JOLTS Job Openings',                 impact: 'high',   timeET: '10:00' },
+  194: { name: 'ADP Employment Report',              impact: 'high',   timeET: '08:15' },
+  // ── Tier 2: significant secondary releases ───────────────────────────────
+  13:  { name: 'Industrial Production',              impact: 'medium', timeET: '09:15' },
+  27:  { name: 'Housing Starts & Building Permits',  impact: 'medium', timeET: '08:30' },
+  51:  { name: 'Trade Balance',                      impact: 'medium', timeET: '08:30' },
+  91:  { name: 'Consumer Sentiment (U. Michigan)',   impact: 'medium', timeET: '10:00' },
+  95:  { name: 'Durable Goods & Factory Orders',     impact: 'medium', timeET: '08:30' },
+  97:  { name: 'New Home Sales',                     impact: 'medium', timeET: '10:00' },
+  188: { name: 'Import & Export Prices',             impact: 'medium', timeET: '08:30' },
+  229: { name: 'Construction Spending',              impact: 'medium', timeET: '10:00' },
+  291: { name: 'Existing Home Sales',                impact: 'medium', timeET: '10:00' },
+  321: { name: 'Empire State Mfg Survey',            impact: 'medium', timeET: '08:30' },
+  351: { name: 'Philadelphia Fed Mfg Survey',        impact: 'medium', timeET: '08:30' },
 };
 
 // Convert a FRED date string + ET time to a proper ISO timestamp with timezone offset.
@@ -145,39 +157,47 @@ router.get('/calendar', async (_req, res) => {
         from.setDate(from.getDate() - 7);   // 1 week back (catch recent releases)
         const to = new Date(today);
         to.setDate(to.getDate() + 28);       // 4 weeks ahead
-
         const fmt = (d: Date) => d.toISOString().split('T')[0];
-        const url = new URL('https://api.stlouisfed.org/fred/releases/dates');
-        url.searchParams.set('realtime_start', fmt(from));
-        url.searchParams.set('realtime_end', fmt(to));
-        url.searchParams.set('include_release_dates_with_no_data', 'true');
-        url.searchParams.set('limit', '1000');
-        url.searchParams.set('order_by', 'release_date');
-        url.searchParams.set('sort_order', 'asc');
-        url.searchParams.set('file_type', 'json');
-        url.searchParams.set('api_key', fredKey);
 
-        const resp = await fetch(url.toString());
-        if (!resp.ok) throw new Error(`FRED calendar error: ${resp.status}`);
-        const raw: any = await resp.json();
+        // One request per release ID (fred/release/dates, singular) to guarantee
+        // isolation — the bulk releases/dates endpoint bleeds in daily treasury
+        // releases that share numeric IDs with economic releases.
+        const releaseIds = Object.keys(FRED_RELEASE_META).map(Number);
+        const perRelease = await Promise.all(
+          releaseIds.map(async (releaseId) => {
+            const meta = FRED_RELEASE_META[releaseId];
+            const url = new URL('https://api.stlouisfed.org/fred/release/dates');
+            url.searchParams.set('release_id', String(releaseId));
+            url.searchParams.set('realtime_start', fmt(from));
+            url.searchParams.set('realtime_end', fmt(to));
+            url.searchParams.set('include_release_dates_with_no_data', 'true');
+            url.searchParams.set('limit', '50');
+            url.searchParams.set('sort_order', 'asc');
+            url.searchParams.set('file_type', 'json');
+            url.searchParams.set('api_key', fredKey);
+            try {
+              const resp = await fetch(url.toString());
+              if (!resp.ok) return [];
+              const raw: any = await resp.json();
+              return (raw.release_dates ?? []).map((r: any) => ({
+                event:    meta.name,
+                country:  'US',
+                time:     etToIso(r.date, meta.timeET),
+                impact:   meta.impact,
+                actual:   null,
+                estimate: null,
+                prev:     null,
+                unit:     '',
+              }));
+            } catch {
+              return [];
+            }
+          }),
+        );
 
-        const releaseDates: any[] = raw.release_dates ?? [];
-
-        const events = releaseDates
-          .filter((r: any) => FRED_RELEASE_META[r.release_id] !== undefined)
-          .map((r: any) => {
-            const meta = FRED_RELEASE_META[r.release_id];
-            return {
-              event:    r.release_name ?? `Release ${r.release_id}`,
-              country:  'US',
-              time:     etToIso(r.date, meta.timeET),
-              impact:   meta.impact,
-              actual:   null,  // FRED releases/dates doesn't include values; use series data later
-              estimate: null,
-              prev:     null,
-              unit:     '',
-            };
-          });
+        const events = perRelease
+          .flat()
+          .sort((a, b) => a.time.localeCompare(b.time));
 
         return { events, unavailable: false };
       },

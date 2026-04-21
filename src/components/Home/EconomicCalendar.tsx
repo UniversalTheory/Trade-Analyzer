@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { EconomicEvent } from '../../api/types';
 
 interface Props {
@@ -70,6 +71,12 @@ function groupByDate(events: EconomicEvent[]): { key: string; label: string; ite
 }
 
 export default function EconomicCalendar({ events, unavailable }: Props) {
+  const todayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    todayRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }, [events]);
+
   if (unavailable) {
     return (
       <div className="eco-cal-empty">
@@ -92,7 +99,10 @@ export default function EconomicCalendar({ events, unavailable }: Props) {
     <div className="eco-cal-feed">
       {groups.map(group => (
         <div key={group.key} className="eco-cal-group">
-          <div className={`eco-cal-date-header${group.key === todayKey ? ' today' : ''}`}>
+          <div
+            ref={group.key === todayKey ? todayRef : undefined}
+            className={`eco-cal-date-header${group.key === todayKey ? ' today' : ''}`}
+          >
             {group.label}{group.key === todayKey ? ' — Today' : ''}
           </div>
           {group.items.map((e, i) => {
