@@ -3,15 +3,17 @@ import SpreadAnalysis from '../SpreadAnalysis/SpreadAnalysis';
 import ExpectedMove from '../ExpectedMove/ExpectedMove';
 import KellyCriterion from '../KellyCriterion/KellyCriterion';
 import BlackScholes from './BlackScholes';
+import MonteCarloSimulation from './MonteCarloSimulation';
 import type { CalcPrefill } from '../Ticker/TickerResearch';
 
-type OptionsTool = 'spread' | 'expected' | 'kelly' | 'blackscholes';
+type OptionsTool = 'spread' | 'expected' | 'kelly' | 'blackscholes' | 'montecarlo';
 
 const TOOLS: { id: OptionsTool; label: string; icon: string }[] = [
   { id: 'spread',      label: 'Spread Analysis',  icon: '⊿' },
   { id: 'expected',    label: 'Expected Move',     icon: '↔' },
   { id: 'kelly',       label: 'Position Sizing',   icon: '%' },
   { id: 'blackscholes',label: 'Black-Scholes',     icon: '∫' },
+  { id: 'montecarlo',  label: 'Monte Carlo',       icon: '◬' },
 ];
 
 interface Props {
@@ -50,6 +52,7 @@ export default function OptionsCalculator({ prefill, onPrefillConsumed }: Props)
         {activeTool === 'blackscholes' && (
           <BlackScholes prefill={prefill ?? null} onPrefillConsumed={onPrefillConsumed} />
         )}
+        {activeTool === 'montecarlo'   && <MonteCarloSimulation />}
       </div>
     </div>
   );

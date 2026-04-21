@@ -1,6 +1,37 @@
 import type { QuoteData, FundamentalsData, OptionsChainData, OptionContract } from '../api/types';
 import { calcBlackScholes } from './blackScholes';
 import type { IVAnalysis } from './ivAnalysis';
+import { simulateTerminalGBM } from './monteCarlo';
+import {
+  payoffVector, supportsMonteCarloPayoff,
+  type StrategyId, type StrategyLegs,
+} from './strategyPayoff';
+
+// ── MC-based POP helper ──────────────────────────────────────────────────────
+// Fast terminal-only GBM: 2K paths × 1 step per strategy ≈ <5ms on a modern CPU.
+// Seed is fixed so the same inputs produce a stable POP across renders.
+
+const MC_POP_PATHS = 2000;
+const MC_POP_SEED = 0xBADC0DE;
+const MC_RISK_FREE_DRIFT = 0.045; // use risk-free rate as drift proxy
+
+function mcPop(strategy: StrategyId, legs: StrategyLegs, S0: number, ivAnnual: number, dteDays: number): number | null {
+  if (!supportsMonteCarloPayoff(strategy)) return null;
+  if (!(S0 > 0) || !(ivAnnual > 0) || !(dteDays > 0)) return null;
+
+  const terminal = simulateTerminalGBM({
+    S0,
+    T: dteDays / 365,
+    paths: MC_POP_PATHS,
+    driftAnnual: MC_RISK_FREE_DRIFT,
+    volAnnual: ivAnnual,
+    seed: MC_POP_SEED,
+  });
+  const pnl = payoffVector(strategy, legs, terminal);
+  let winners = 0;
+  for (let i = 0; i < pnl.length; i++) if (pnl[i] > 0) winners++;
+  return Math.round((winners / pnl.length) * 100);
+}
 
 export interface RiskFactor {
   factor: string;
@@ -175,16 +206,21 @@ export function calculateRisk(
   const op = getOptionPrices(quote, chain, iv);
   const keyRiskFactors = buildRiskFactors(fundamentals, iv);
   const price = quote.price;
+  const volForMC = iv?.atmIV ?? 0.30;
+  const dteForMC = 30;
 
   switch (strategy) {
     case 'Long Call': {
       const premium = op.atmCallPrice * 100;
       const be = op.atmStrike + op.atmCallPrice;
+      const pop = mcPop('Long Call', {
+        longCallStrike: op.atmStrike, longCallPremium: op.atmCallPrice,
+      }, price, volForMC, dteForMC) ?? 45;
       return {
         maxLoss: `${fmt$(premium)} (premium paid)`,
         maxGain: 'Unlimited',
         riskRewardRatio: null,
-        probabilityEstimate: 45, // roughly ATM delta
+        probabilityEstimate: pop,
         breakeven: `${fmt$dec(be)}`,
         keyRiskFactors,
         managementTips: [
@@ -201,7 +237,11 @@ export function calculateRisk(
       const maxGain = Math.max(0, spreadWidth - debit);
       const be = op.atmStrike + debit;
       const rr = debit > 0 ? maxGain / debit : 0;
-      const pop = spreadWidth > 0 ? Math.round((1 - debit / spreadWidth) * 100) : 50;
+      const fallback = spreadWidth > 0 ? Math.round((1 - debit / spreadWidth) * 100) : 50;
+      const pop = mcPop('Bull Call Spread', {
+        longCallStrike: op.atmStrike,    longCallPremium: op.atmCallPrice,
+        shortCallStrike: op.otmCallStrike, shortCallPremium: op.otmCallPrice,
+      }, price, volForMC, dteForMC) ?? fallback;
       return {
         maxLoss: `${fmt$(debit * 100)} (net debit)`,
         maxGain: `${fmt$(maxGain * 100)}`,
@@ -220,15 +260,20 @@ export function calculateRisk(
     case 'Put Credit Spread': {
       const credit = Math.max(0, op.otmPutPrice - (op.otmPutPrice * 0.4)); // approximate: sell near OTM, buy further OTM
       const actualCredit = op.otmPutPrice * 0.6; // rough estimate
-      const spreadWidth = op.otmPutStrike - Math.round(price * 0.90);
+      const longPutStrike = Math.round(price * 0.90);
+      const spreadWidth = op.otmPutStrike - longPutStrike;
       const maxLoss = Math.max(0, spreadWidth - actualCredit);
       const be = op.otmPutStrike - actualCredit;
       const rr = maxLoss > 0 ? actualCredit / maxLoss : 0;
+      const pop = mcPop('Put Credit Spread', {
+        shortPutStrike: op.otmPutStrike, shortPutPremium: op.otmPutPrice,
+        longPutStrike,                    longPutPremium: op.otmPutPrice * 0.4,
+      }, price, volForMC, dteForMC) ?? 65;
       return {
         maxLoss: `${fmt$(maxLoss * 100)}`,
         maxGain: `${fmt$(actualCredit * 100)} (credit received)`,
         riskRewardRatio: Math.round(rr * 100) / 100,
-        probabilityEstimate: 65,
+        probabilityEstimate: pop,
         breakeven: `${fmt$dec(be)}`,
         keyRiskFactors,
         managementTips: [
@@ -243,11 +288,14 @@ export function calculateRisk(
       const premium = op.otmPutPrice * 100;
       const be = op.otmPutStrike - op.otmPutPrice;
       const maxLoss = (be) * 100; // stock to zero minus premium
+      const pop = mcPop('Cash-Secured Put', {
+        shortPutStrike: op.otmPutStrike, shortPutPremium: op.otmPutPrice,
+      }, price, volForMC, dteForMC) ?? 70;
       return {
         maxLoss: `${fmt$(maxLoss)} (if stock goes to $0)`,
         maxGain: `${fmt$(premium)} (premium received)`,
         riskRewardRatio: null,
-        probabilityEstimate: 70,
+        probabilityEstimate: pop,
         breakeven: `${fmt$dec(be)}`,
         keyRiskFactors,
         managementTips: [
@@ -261,11 +309,15 @@ export function calculateRisk(
     case 'Protective Put': {
       const premium = op.otmPutPrice * 100;
       const protectedAt = op.otmPutStrike;
+      const pop = mcPop('Protective Put', {
+        stockBasis: price,
+        longPutStrike: op.otmPutStrike, longPutPremium: op.otmPutPrice,
+      }, price, volForMC, dteForMC) ?? 55;
       return {
         maxLoss: `${fmt$(premium)} + decline to ${fmt$dec(protectedAt)}`,
         maxGain: 'Unlimited upside minus premium cost',
         riskRewardRatio: null,
-        probabilityEstimate: 55,
+        probabilityEstimate: pop,
         breakeven: `${fmt$dec(price + op.otmPutPrice)} (long stock + put cost)`,
         keyRiskFactors,
         managementTips: [
@@ -280,11 +332,16 @@ export function calculateRisk(
       const putCost = op.otmPutPrice;
       const callCredit = op.otmCallPrice;
       const netCost = putCost - callCredit;
+      const pop = mcPop('Collar', {
+        stockBasis: price,
+        longPutStrike: op.otmPutStrike,   longPutPremium: op.otmPutPrice,
+        shortCallStrike: op.otmCallStrike, shortCallPremium: op.otmCallPrice,
+      }, price, volForMC, dteForMC) ?? 60;
       return {
         maxLoss: `${fmt$dec(price - op.otmPutStrike + netCost)} per share`,
         maxGain: `${fmt$dec(op.otmCallStrike - price - netCost)} per share`,
         riskRewardRatio: null,
-        probabilityEstimate: 60,
+        probabilityEstimate: pop,
         breakeven: `${fmt$dec(price + netCost)}`,
         keyRiskFactors,
         managementTips: [
@@ -302,11 +359,17 @@ export function calculateRisk(
       const wingWidth = Math.round(price * 0.05);
       const maxLoss = Math.max(0, wingWidth - totalCredit);
       const rr = maxLoss > 0 ? totalCredit / maxLoss : 0;
+      const pop = mcPop('Iron Condor', {
+        longPutStrike:   op.otmPutStrike - wingWidth, longPutPremium:   op.otmPutPrice * 0.4,
+        shortPutStrike:  op.otmPutStrike,             shortPutPremium:  op.otmPutPrice,
+        shortCallStrike: op.otmCallStrike,            shortCallPremium: op.otmCallPrice,
+        longCallStrike:  op.otmCallStrike + wingWidth, longCallPremium: op.otmCallPrice * 0.4,
+      }, price, volForMC, dteForMC) ?? 60;
       return {
         maxLoss: `${fmt$(maxLoss * 100)}`,
         maxGain: `${fmt$(totalCredit * 100)} (total credit)`,
         riskRewardRatio: Math.round(rr * 100) / 100,
-        probabilityEstimate: 60,
+        probabilityEstimate: pop,
         breakeven: `${fmt$dec(op.otmPutStrike - putCredit)} / ${fmt$dec(op.otmCallStrike + callCredit)}`,
         keyRiskFactors,
         managementTips: [
@@ -337,11 +400,15 @@ export function calculateRisk(
     case 'Covered Call': {
       const premium = op.otmCallPrice * 100;
       const be = price - op.otmCallPrice;
+      const pop = mcPop('Covered Call', {
+        stockBasis: price,
+        shortCallStrike: op.otmCallStrike, shortCallPremium: op.otmCallPrice,
+      }, price, volForMC, dteForMC) ?? 65;
       return {
         maxLoss: `${fmt$(be * 100)} (if stock goes to $0)`,
         maxGain: `${fmt$((op.otmCallStrike - price + op.otmCallPrice) * 100)}`,
         riskRewardRatio: null,
-        probabilityEstimate: 65,
+        probabilityEstimate: pop,
         breakeven: `${fmt$dec(be)}`,
         keyRiskFactors,
         managementTips: [
@@ -358,7 +425,11 @@ export function calculateRisk(
       const maxGain = Math.max(0, spreadWidth - debit);
       const be = op.atmStrike - debit;
       const rr = debit > 0 ? maxGain / debit : 0;
-      const pop = spreadWidth > 0 ? Math.round((1 - debit / spreadWidth) * 100) : 50;
+      const fallback = spreadWidth > 0 ? Math.round((1 - debit / spreadWidth) * 100) : 50;
+      const pop = mcPop('Bear Put Spread', {
+        longPutStrike: op.atmStrike,   longPutPremium: op.atmPutPrice,
+        shortPutStrike: op.otmPutStrike, shortPutPremium: op.otmPutPrice,
+      }, price, volForMC, dteForMC) ?? fallback;
       return {
         maxLoss: `${fmt$(debit * 100)} (net debit)`,
         maxGain: `${fmt$(maxGain * 100)}`,
@@ -377,11 +448,14 @@ export function calculateRisk(
     case 'Long Put': {
       const premium = op.atmPutPrice * 100;
       const be = op.atmStrike - op.atmPutPrice;
+      const pop = mcPop('Long Put', {
+        longPutStrike: op.atmStrike, longPutPremium: op.atmPutPrice,
+      }, price, volForMC, dteForMC) ?? 45;
       return {
         maxLoss: `${fmt$(premium)} (premium paid)`,
         maxGain: `${fmt$(be * 100)} (if stock goes to $0)`,
         riskRewardRatio: null,
-        probabilityEstimate: 45,
+        probabilityEstimate: pop,
         breakeven: `${fmt$dec(be)}`,
         keyRiskFactors,
         managementTips: [
@@ -396,11 +470,15 @@ export function calculateRisk(
       const totalPremium = (op.atmCallPrice + op.atmPutPrice) * 100;
       const beUp = op.atmStrike + op.atmCallPrice + op.atmPutPrice;
       const beDown = op.atmStrike - op.atmCallPrice - op.atmPutPrice;
+      const pop = mcPop('Straddle / Strangle', {
+        longCallStrike: op.atmStrike, longCallPremium: op.atmCallPrice,
+        longPutStrike:  op.atmStrike, longPutPremium:  op.atmPutPrice,
+      }, price, volForMC, dteForMC) ?? 35;
       return {
         maxLoss: `${fmt$(totalPremium)} (total premium paid)`,
         maxGain: 'Unlimited (either direction)',
         riskRewardRatio: null,
-        probabilityEstimate: 35,
+        probabilityEstimate: pop,
         breakeven: `${fmt$dec(beDown)} / ${fmt$dec(beUp)}`,
         keyRiskFactors,
         managementTips: [
