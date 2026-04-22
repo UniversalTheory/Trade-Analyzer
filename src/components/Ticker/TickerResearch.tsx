@@ -8,12 +8,11 @@ import AssetProfileCard from './AssetProfile';
 import FundamentalsCard from './FundamentalsCard';
 import FilingsCard from './FilingsCard';
 import EarningsCard from './EarningsCard';
-import PriceChart from './PriceChart';
+import PriceChart, { INTERVAL_CONFIG, type Interval, type Range } from './PriceChart';
 import TechnicalIndicators from './TechnicalIndicators';
 import OptionsChain from './OptionsChain';
 import TradeRecommendations from './TradeRecommendations';
 
-type Range = '1m' | '3m' | '6m' | '1y' | '2y';
 
 export interface CalcPrefill {
   symbol: string;
@@ -27,6 +26,7 @@ interface Props {
 
 export default function TickerResearch({ onAnalyzeInCalculator }: Props) {
   const [symbol, setSymbol] = useState('');
+  const [interval, setInterval] = useState<Interval>('1d');
   const [range, setRange] = useState<Range>('3m');
 
   const {
@@ -72,16 +72,25 @@ export default function TickerResearch({ onAnalyzeInCalculator }: Props) {
   const {
     data: bars,
     loading: barsLoading,
-    refetch: refetchBars,
   } = useApi<PriceBar[]>(
-    () => tickerApi.getHistory(symbol, range),
-    [symbol, range],
+    () => tickerApi.getHistory(symbol, range, interval),
+    [symbol, range, interval],
     { autoFetch: !!symbol },
   );
 
   const handleSymbolSelect = useCallback((sym: string) => {
     setSymbol(sym);
+    setInterval('1d');
     setRange('3m');
+  }, []);
+
+  const handleIntervalChange = useCallback((i: Interval) => {
+    setInterval(i);
+    // Auto-clamp range to a valid option for the new interval
+    setRange(prev => {
+      const valid = INTERVAL_CONFIG[i].ranges;
+      return valid.includes(prev) ? prev : INTERVAL_CONFIG[i].defaultRange;
+    });
   }, []);
 
   const handleRangeChange = useCallback((r: Range) => {
@@ -144,7 +153,9 @@ export default function TickerResearch({ onAnalyzeInCalculator }: Props) {
 
           <PriceChart
             bars={bars ?? []}
+            interval={interval}
             range={range}
+            onIntervalChange={handleIntervalChange}
             onRangeChange={handleRangeChange}
             loading={barsLoading}
           />

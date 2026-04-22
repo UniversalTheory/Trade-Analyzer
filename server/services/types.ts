@@ -188,6 +188,6 @@ export interface MarketDataProvider {
   getSectorPerformance(): Promise<SectorPerformance[]>;
   getTopMovers(): Promise<MoverData>;
   getOptionsChain(symbol: string, expiration?: string): Promise<OptionsChainData>;
-  getHistoricalPrices(symbol: string, range: string): Promise<PriceBar[]>;
+  getHistoricalPrices(symbol: string, range: string, interval?: string): Promise<PriceBar[]>;
   searchSymbol(query: string): Promise<SymbolSearchResult[]>;
 }

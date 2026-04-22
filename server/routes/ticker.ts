@@ -43,16 +43,17 @@ router.get('/:symbol/quote', async (req, res) => {
   }
 });
 
-// GET /api/ticker/:symbol/history?range=3m - Historical OHLCV
+// GET /api/ticker/:symbol/history?range=3m&interval=1d - Historical OHLCV
 router.get('/:symbol/history', async (req, res) => {
   try {
     const { symbol } = req.params;
     const range = (req.query.range as string) || '3m';
+    const interval = (req.query.interval as string) || '1d';
     const provider = getProvider('history');
     const data = await cachedCall(
-      `ticker:history:${symbol}:${range}`,
+      `ticker:history:${symbol}:${range}:${interval}`,
       TTLCache.TTL.HISTORY,
-      () => provider.getHistoricalPrices(symbol, range),
+      () => provider.getHistoricalPrices(symbol, range, interval),
     );
     res.json(data);
   } catch (err: any) {

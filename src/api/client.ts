@@ -56,8 +56,8 @@ export const sector = {
 export const ticker = {
   search: (q: string) => request<import('./types').SymbolSearchResult[]>(`/ticker/search?q=${encodeURIComponent(q)}`),
   getQuote: (symbol: string) => request<import('./types').QuoteData>(`/ticker/${symbol}/quote`),
-  getHistory: (symbol: string, range = '3m') =>
-    request<import('./types').PriceBar[]>(`/ticker/${symbol}/history?range=${range}`),
+  getHistory: (symbol: string, range = '3m', interval = '1d') =>
+    request<import('./types').PriceBar[]>(`/ticker/${symbol}/history?range=${range}&interval=${interval}`),
   getNews: (symbol: string) => request<import('./types').NewsItem[]>(`/ticker/${symbol}/news`),
   getProfile: (symbol: string) => request<import('./types').AssetProfile>(`/ticker/${symbol}/profile`),
   getFundamentals: (symbol: string) => request<import('./types').FundamentalsData>(`/ticker/${symbol}/fundamentals`),

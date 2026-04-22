@@ -110,7 +110,7 @@ export class FinnhubProvider implements MarketDataProvider {
     return { symbol: _symbol, expirationDate: '', calls: [], puts: [] };
   }
 
-  async getHistoricalPrices(symbol: string, range: string): Promise<PriceBar[]> {
+  async getHistoricalPrices(symbol: string, range: string, _interval?: string): Promise<PriceBar[]> {
     const now = Math.floor(Date.now() / 1000);
     const rangeSeconds: Record<string, number> = {
       '1d': 86400,

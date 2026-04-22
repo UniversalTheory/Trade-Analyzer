@@ -3192,6 +3192,57 @@ body {
   gap: 8px;
 }
 
+.price-chart-left-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.price-chart-ctrl-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border-primary);
+  flex-shrink: 0;
+}
+
+.price-chart-ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.price-chart-ctrl-label {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.price-chart-intervals {
+  display: flex;
+  gap: 4px;
+}
+
+.interval-btn {
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.interval-btn:hover  { border-color: var(--accent-blue); color: var(--accent-blue); }
+.interval-btn.active { background: var(--blue-bg); border-color: var(--accent-blue); color: var(--accent-blue); font-weight: 600; }
+
 .price-chart-ranges {
   display: flex;
   gap: 4px;
@@ -3209,8 +3260,8 @@ body {
   transition: all 0.15s;
 }
 
-.range-btn:hover  { border-color: var(--accent-blue); color: var(--accent-blue); }
-.range-btn.active { background: var(--blue-bg); border-color: var(--accent-blue); color: var(--accent-blue); }
+.range-btn:hover  { border-color: #f0883e; color: #f0883e; }
+.range-btn.active { background: rgba(240, 136, 62, 0.12); border-color: #f0883e; color: #f0883e; font-weight: 600; }
 
 .price-chart-overlays {
   display: flex;

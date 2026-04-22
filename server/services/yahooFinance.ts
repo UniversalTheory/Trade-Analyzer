@@ -178,23 +178,35 @@ export class YahooFinanceProvider implements MarketDataProvider {
     };
   }
 
-  async getHistoricalPrices(symbol: string, range: string): Promise<PriceBar[]> {
-    // Map range string to yahoo-finance2 period/interval
-    const rangeMap: Record<string, { period1: Date; interval: '1d' | '1wk' | '1mo' | '5m' | '15m' | '1h' }> = {
-      '1d': { period1: daysAgo(1), interval: '5m' },
-      '5d': { period1: daysAgo(5), interval: '15m' },
-      '1m': { period1: daysAgo(30), interval: '1d' },
-      '3m': { period1: daysAgo(90), interval: '1d' },
-      '6m': { period1: daysAgo(180), interval: '1d' },
-      '1y': { period1: daysAgo(365), interval: '1wk' },
-      '5y': { period1: daysAgo(365 * 5), interval: '1mo' },
+  async getHistoricalPrices(symbol: string, range: string, interval = '1d'): Promise<PriceBar[]> {
+    // Range → how far back to fetch
+    const rangeToPeriod1: Record<string, Date> = {
+      '1d':  daysAgo(1),
+      '5d':  daysAgo(5),
+      '1m':  daysAgo(30),
+      '3m':  daysAgo(90),
+      '6m':  daysAgo(180),
+      '1y':  daysAgo(365),
+      '2y':  daysAgo(730),
+      '5y':  daysAgo(1825),
     };
 
-    const config = rangeMap[range] || rangeMap['3m'];
+    // Interval → Yahoo Finance interval token
+    type YInterval = '5m' | '15m' | '1h' | '1d' | '1wk';
+    const intervalMap: Record<string, YInterval> = {
+      '5m':  '5m',
+      '15m': '15m',
+      '1h':  '1h',
+      '1d':  '1d',
+      '1wk': '1wk',
+    };
+
+    const period1 = rangeToPeriod1[range] ?? daysAgo(90);
+    const yInterval: YInterval = intervalMap[interval] ?? '1d';
 
     const result = await yahooFinance.chart(symbol, {
-      period1: config.period1,
-      interval: config.interval,
+      period1,
+      interval: yInterval,
     });
 
     return (result.quotes || []).map((bar: any) => ({

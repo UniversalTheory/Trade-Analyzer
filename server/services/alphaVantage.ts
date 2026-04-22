@@ -139,7 +139,7 @@ export class AlphaVantageProvider implements MarketDataProvider {
     return { symbol: _symbol, expirationDate: '', calls: [], puts: [] };
   }
 
-  async getHistoricalPrices(symbol: string, range: string): Promise<PriceBar[]> {
+  async getHistoricalPrices(symbol: string, range: string, _interval?: string): Promise<PriceBar[]> {
     let fn: string;
     let seriesKey: string;
 

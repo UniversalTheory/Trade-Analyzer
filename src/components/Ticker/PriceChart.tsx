@@ -11,22 +11,49 @@ import {
 import type { PriceBar } from '../../api/types';
 import { toOHLC, calcSMA } from '../../utils/technicals';
 
-const RANGES = ['1m', '3m', '6m', '1y', '2y'] as const;
-type Range = (typeof RANGES)[number];
+// ── Interval / Range config ──────────────────────────────────────────────────
+
+export type Interval = '5m' | '15m' | '1h' | '1d' | '1wk';
+export type Range    = '1d' | '5d' | '1m' | '3m' | '6m' | '1y' | '2y' | '5y';
+
+interface IntervalMeta {
+  label: string;
+  ranges: Range[];
+  defaultRange: Range;
+}
+
+export const INTERVAL_CONFIG: Record<Interval, IntervalMeta> = {
+  '5m':  { label: '5m',  ranges: ['1d', '5d', '1m'],                    defaultRange: '5d'  },
+  '15m': { label: '15m', ranges: ['1d', '5d', '1m'],                    defaultRange: '5d'  },
+  '1h':  { label: '1H',  ranges: ['5d', '1m', '3m', '6m', '1y', '2y'], defaultRange: '1m'  },
+  '1d':  { label: '1D',  ranges: ['1m', '3m', '6m', '1y', '2y', '5y'], defaultRange: '3m'  },
+  '1wk': { label: '1W',  ranges: ['3m', '6m', '1y', '2y', '5y'],       defaultRange: '1y'  },
+};
+
+const INTERVALS: Interval[] = ['5m', '15m', '1h', '1d', '1wk'];
+
+const RANGE_LABEL: Record<Range, string> = {
+  '1d': '1D', '5d': '5D', '1m': '1M', '3m': '3M',
+  '6m': '6M', '1y': '1Y', '2y': '2Y', '5y': '5Y',
+};
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
   bars: PriceBar[];
+  interval: Interval;
   range: Range;
+  onIntervalChange: (i: Interval) => void;
   onRangeChange: (r: Range) => void;
   loading: boolean;
 }
 
-export default function PriceChart({ bars, range, onRangeChange, loading }: Props) {
+export default function PriceChart({ bars, interval, range, onIntervalChange, onRangeChange, loading }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
-  const candleRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const sma20Ref = useRef<ISeriesApi<'Line'> | null>(null);
-  const sma50Ref = useRef<ISeriesApi<'Line'> | null>(null);
+  const chartRef    = useRef<IChartApi | null>(null);
+  const candleRef   = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const sma20Ref    = useRef<ISeriesApi<'Line'> | null>(null);
+  const sma50Ref    = useRef<ISeriesApi<'Line'> | null>(null);
 
   const [showSMA20, setShowSMA20] = useState(true);
   const [showSMA50, setShowSMA50] = useState(true);
@@ -61,12 +88,12 @@ export default function PriceChart({ bars, range, onRangeChange, loading }: Prop
     });
 
     const candles = chart.addSeries(CandlestickSeries, {
-      upColor: '#3fb950',
-      downColor: '#f85149',
-      borderUpColor: '#3fb950',
-      borderDownColor: '#f85149',
-      wickUpColor: '#3fb950',
-      wickDownColor: '#f85149',
+      upColor:        '#3fb950',
+      downColor:      '#f85149',
+      borderUpColor:  '#3fb950',
+      borderDownColor:'#f85149',
+      wickUpColor:    '#3fb950',
+      wickDownColor:  '#f85149',
     } as Partial<CandlestickSeriesOptions>);
 
     const sma20 = chart.addSeries(LineSeries, {
@@ -83,10 +110,10 @@ export default function PriceChart({ bars, range, onRangeChange, loading }: Prop
       lastValueVisible: false,
     } as Partial<LineSeriesOptions>);
 
-    chartRef.current = chart;
+    chartRef.current  = chart;
     candleRef.current = candles;
-    sma20Ref.current = sma20;
-    sma50Ref.current = sma50;
+    sma20Ref.current  = sma20;
+    sma50Ref.current  = sma50;
 
     const observer = new ResizeObserver(entries => {
       const { width } = entries[0].contentRect;
@@ -101,7 +128,7 @@ export default function PriceChart({ bars, range, onRangeChange, loading }: Prop
     };
   }, []);
 
-  // Update data
+  // Update data when bars or SMA toggles change
   useEffect(() => {
     if (!candleRef.current || !sma20Ref.current || !sma50Ref.current) return;
     if (bars.length === 0) return;
@@ -115,20 +142,45 @@ export default function PriceChart({ bars, range, onRangeChange, loading }: Prop
     chartRef.current?.timeScale().fitContent();
   }, [bars, showSMA20, showSMA50]);
 
+  const validRanges = INTERVAL_CONFIG[interval].ranges;
+
   return (
     <div className="price-chart-card">
       <div className="price-chart-toolbar">
-        <div className="price-chart-ranges">
-          {RANGES.map(r => (
-            <button
-              key={r}
-              className={`range-btn ${range === r ? 'active' : ''}`}
-              onClick={() => onRangeChange(r)}
-            >
-              {r.toUpperCase()}
-            </button>
-          ))}
+        <div className="price-chart-left-controls">
+          <div className="price-chart-ctrl-group">
+            <span className="price-chart-ctrl-label">Interval</span>
+            <div className="price-chart-intervals">
+              {INTERVALS.map(i => (
+                <button
+                  key={i}
+                  className={`interval-btn ${interval === i ? 'active' : ''}`}
+                  onClick={() => onIntervalChange(i)}
+                >
+                  {INTERVAL_CONFIG[i].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="price-chart-ctrl-divider" />
+
+          <div className="price-chart-ctrl-group">
+            <span className="price-chart-ctrl-label">Range</span>
+            <div className="price-chart-ranges">
+              {validRanges.map(r => (
+                <button
+                  key={r}
+                  className={`range-btn ${range === r ? 'active' : ''}`}
+                  onClick={() => onRangeChange(r)}
+                >
+                  {RANGE_LABEL[r]}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
+
         <div className="price-chart-overlays">
           <button
             className={`overlay-btn ${showSMA20 ? 'active' : ''}`}
