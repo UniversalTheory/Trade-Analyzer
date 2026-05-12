@@ -18,6 +18,10 @@ import { selectStrikes, STRATEGY_BIAS } from '../../utils/strikeSelector';
 import MonteCarloComparison, {
   type ComparisonPayload, type StrategyComparisonRow,
 } from './MonteCarloComparison';
+import MonteCarloBacktest, {
+  type BacktestPayload, type BacktestSinglePayload, type BacktestComparePayload, type BacktestCompareRow,
+} from './MonteCarloBacktest';
+import { runBacktest, type Cadence } from '../../utils/backtest';
 
 // ── Leg-field specification per strategy ─────────────────────────────────────
 
@@ -186,7 +190,16 @@ function fmtPct(x: number, decimals = 1): string {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-type Mode = 'single' | 'compare';
+type Mode = 'single' | 'compare' | 'backtest';
+type BacktestScope = 'single' | 'compare';
+type Lookback = '1y' | '2y' | '5y' | '10y';
+
+const LOOKBACK_CHOICES: Lookback[] = ['1y', '2y', '5y', '10y'];
+const CADENCE_CHOICES: Array<{ key: Cadence; label: string; disabled?: boolean }> = [
+  { key: 'weekly',  label: 'Weekly'  },
+  { key: 'daily',   label: 'Daily'   },
+  { key: 'monthly', label: 'Monthly' },
+];
 
 export default function MonteCarloSimulation() {
   const [mode, setMode] = useState<Mode>('single');
@@ -207,6 +220,12 @@ export default function MonteCarloSimulation() {
   const [result, setResult] = useState<SimResult | null>(null);
   const [comparison, setComparison] = useState<ComparisonPayload | null>(null);
 
+  // Backtest-specific state
+  const [backtestScope, setBacktestScope] = useState<BacktestScope>('single');
+  const [lookback, setLookback] = useState<Lookback>('5y');
+  const [cadence, setCadence] = useState<Cadence>('weekly');
+  const [backtest, setBacktest] = useState<BacktestPayload | null>(null);
+
   const legSpecs = STRATEGY_LEGS[strategy];
   const mcSupported = supportsMonteCarloPayoff(strategy);
 
@@ -226,6 +245,7 @@ export default function MonteCarloSimulation() {
     setMode(next);
     setResult(null);
     setComparison(null);
+    setBacktest(null);
     setError('');
   }
 
@@ -484,6 +504,109 @@ export default function MonteCarloSimulation() {
     }, 30);
   }
 
+  async function handleRunBacktest() {
+    setError('');
+    setBacktest(null);
+    setResult(null);
+    setComparison(null);
+
+    const sym = symbol.trim().toUpperCase();
+    if (!sym) { setError('Enter a symbol to backtest.'); return; }
+    const dteNum = parseNum(dte);
+    if (!dteNum || dteNum <= 0) { setError('Enter a valid DTE.'); return; }
+    if (dteNum > 365) { setError('DTE must be ≤ 365 days for backtest.'); return; }
+
+    setRunning(true);
+    try {
+      const bars = await ticker.getHistory(sym, lookback, '1d');
+      if (!bars || bars.length < 60) {
+        setError(`Only ${bars?.length ?? 0} bars returned for ${sym} — need at least 60 for a backtest.`);
+        setRunning(false);
+        return;
+      }
+
+      // Defer the heavy synchronous engine work so the UI can paint "Running…"
+      setTimeout(() => {
+        try {
+          const tStart = performance.now();
+          const lite = bars.map(b => ({ date: b.date, close: b.close }));
+
+          if (backtestScope === 'single') {
+            if (!supportsMonteCarloPayoff(strategy)) {
+              setError(`${strategy} cannot be backtested — no payoff at expiry.`);
+              return;
+            }
+            const result = runBacktest({
+              bars: lite,
+              strategy,
+              dteDays: dteNum,
+              cadence,
+              paths: 1000,
+            });
+            if (result.windows.length === 0) {
+              setError('No valid backtest windows — try a shorter DTE or longer lookback.');
+              return;
+            }
+            const payload: BacktestSinglePayload = {
+              scope: 'single',
+              symbol: sym,
+              strategy,
+              result,
+              lookback,
+              dteDays: dteNum,
+              cadence,
+              elapsedMs: performance.now() - tStart,
+              barsLoaded: bars.length,
+            };
+            setBacktest(payload);
+          } else {
+            const rows: BacktestCompareRow[] = [];
+            let firstWindowCount = 0;
+            for (const sId of STRATEGIES) {
+              if (!supportsMonteCarloPayoff(sId)) continue;
+              const r = runBacktest({
+                bars: lite,
+                strategy: sId,
+                dteDays: dteNum,
+                cadence,
+                paths: 1000,
+              });
+              if (!firstWindowCount) firstWindowCount = r.windows.length;
+              rows.push({
+                strategy: sId,
+                bias: STRATEGY_BIAS[sId],
+                aggregates: r.aggregates,
+              });
+            }
+            if (firstWindowCount === 0) {
+              setError('No valid backtest windows — try a shorter DTE or longer lookback.');
+              return;
+            }
+            const payload: BacktestComparePayload = {
+              scope: 'compare',
+              symbol: sym,
+              rows,
+              lookback,
+              dteDays: dteNum,
+              cadence,
+              elapsedMs: performance.now() - tStart,
+              barsLoaded: bars.length,
+              windowsPerStrategy: firstWindowCount,
+            };
+            setBacktest(payload);
+          }
+        } catch (e: any) {
+          setError(e?.message ?? 'Backtest failed.');
+        } finally {
+          setRunning(false);
+        }
+      }, 30);
+    } catch (e: any) {
+      setError(`Failed to fetch history for ${sym}: ${e?.message ?? 'unknown error'}`);
+      setRunning(false);
+    }
+  }
+
   return (
     <div className="tab-layout">
       <div className="input-panel">
@@ -506,15 +629,85 @@ export default function MonteCarloSimulation() {
             >
               Compare All
             </button>
+            <button
+              type="button"
+              className={`toggle-btn ${mode === 'backtest' ? 'active' : ''}`}
+              onClick={() => handleModeChange('backtest')}
+            >
+              Historical Backtest
+            </button>
           </div>
           {mode === 'compare' && (
             <div className="form-hint">
               Auto-picks strikes at ATM / 5% / 10% OTM and runs every MC-capable strategy against one set of price paths.
             </div>
           )}
+          {mode === 'backtest' && (
+            <div className="form-hint">
+              Replays the strategy over rolling historical windows. Strikes use trailing realized vol at each entry;
+              realized P/L is measured at the bar nearest entry + DTE. Each window also gets an entry-time MC POP for calibration.
+            </div>
+          )}
         </div>
 
-        {mode === 'single' && (
+        {mode === 'backtest' && (
+          <>
+            <div className="form-group">
+              <label className="form-label">Scope</label>
+              <div className="toggle-group">
+                <button
+                  type="button"
+                  className={`toggle-btn ${backtestScope === 'single' ? 'active' : ''}`}
+                  onClick={() => { setBacktestScope('single'); setBacktest(null); }}
+                >
+                  Single Strategy
+                </button>
+                <button
+                  type="button"
+                  className={`toggle-btn ${backtestScope === 'compare' ? 'active' : ''}`}
+                  onClick={() => { setBacktestScope('compare'); setBacktest(null); }}
+                >
+                  Compare All
+                </button>
+              </div>
+            </div>
+
+            <div className="form-row-2">
+              <div className="form-group">
+                <label className="form-label">Lookback</label>
+                <div className="toggle-group toggle-group-compact">
+                  {LOOKBACK_CHOICES.map(l => (
+                    <button
+                      key={l}
+                      type="button"
+                      className={`toggle-btn ${lookback === l ? 'active' : ''}`}
+                      onClick={() => setLookback(l)}
+                    >
+                      {l.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Entry Cadence</label>
+                <div className="toggle-group toggle-group-compact">
+                  {CADENCE_CHOICES.map(c => (
+                    <button
+                      key={c.key}
+                      type="button"
+                      className={`toggle-btn ${cadence === c.key ? 'active' : ''}`}
+                      onClick={() => setCadence(c.key)}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {((mode === 'single') || (mode === 'backtest' && backtestScope === 'single')) && (
           <div className="form-group">
             <label className="form-label">Strategy</label>
             <select
@@ -533,7 +726,9 @@ export default function MonteCarloSimulation() {
         )}
 
         <div className="form-group">
-          <label className="form-label">Symbol (optional)</label>
+          <label className="form-label">
+            Symbol {mode === 'backtest' ? '(required)' : '(optional)'}
+          </label>
           <div className="mc-symbol-row">
             <input
               className="form-input"
@@ -542,35 +737,21 @@ export default function MonteCarloSimulation() {
               placeholder="AAPL"
               maxLength={8}
             />
-            <button
-              type="button"
-              className="btn-fetch"
-              disabled={fetching || !symbol.trim()}
-              onClick={handleFetchLive}
-            >
-              {fetching ? 'Fetching…' : 'Fetch Live'}
-            </button>
+            {mode !== 'backtest' && (
+              <button
+                type="button"
+                className="btn-fetch"
+                disabled={fetching || !symbol.trim()}
+                onClick={handleFetchLive}
+              >
+                {fetching ? 'Fetching…' : 'Fetch Live'}
+              </button>
+            )}
           </div>
-          {fetchMsg && <div className="form-hint form-hint-ok">{fetchMsg}</div>}
+          {fetchMsg && mode !== 'backtest' && <div className="form-hint form-hint-ok">{fetchMsg}</div>}
         </div>
 
-        <div className="form-row-2">
-          <div className="form-group">
-            <label className="form-label">Spot (S₀)</label>
-            <div className="input-wrapper">
-              <span className="input-prefix">$</span>
-              <input
-                className="form-input with-prefix"
-                type="number"
-                value={spot}
-                onChange={(e) => setSpot(e.target.value)}
-                placeholder="e.g. 250.00"
-                min="0"
-                step="0.01"
-              />
-            </div>
-          </div>
-
+        {mode === 'backtest' ? (
           <div className="form-group">
             <label className="form-label">DTE (days)</label>
             <input
@@ -580,10 +761,42 @@ export default function MonteCarloSimulation() {
               onChange={(e) => setDte(e.target.value)}
               placeholder="30"
               min="1"
+              max="365"
               step="1"
             />
           </div>
-        </div>
+        ) : (
+          <div className="form-row-2">
+            <div className="form-group">
+              <label className="form-label">Spot (S₀)</label>
+              <div className="input-wrapper">
+                <span className="input-prefix">$</span>
+                <input
+                  className="form-input with-prefix"
+                  type="number"
+                  value={spot}
+                  onChange={(e) => setSpot(e.target.value)}
+                  placeholder="e.g. 250.00"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">DTE (days)</label>
+              <input
+                className="form-input"
+                type="number"
+                value={dte}
+                onChange={(e) => setDte(e.target.value)}
+                placeholder="30"
+                min="1"
+                step="1"
+              />
+            </div>
+          </div>
+        )}
 
         {mode === 'single' && legSpecs.length > 0 && (
           <div className="mc-legs-grid">
@@ -607,6 +820,8 @@ export default function MonteCarloSimulation() {
           </div>
         )}
 
+        {mode !== 'backtest' && (
+        <>
         <div className="form-group">
           <label className="form-label">Volatility Model</label>
           <div className="toggle-group">
@@ -678,6 +893,8 @@ export default function MonteCarloSimulation() {
             ))}
           </div>
         </div>
+        </>
+        )}
 
         {error && <div className="error-msg">{error}</div>}
 
@@ -689,7 +906,7 @@ export default function MonteCarloSimulation() {
           >
             {running ? 'Running simulation…' : 'Run Simulation'}
           </button>
-        ) : (
+        ) : mode === 'compare' ? (
           <button
             className="btn-analyze"
             onClick={handleRunComparison}
@@ -697,12 +914,21 @@ export default function MonteCarloSimulation() {
           >
             {running ? 'Running comparison…' : 'Compare All Strategies'}
           </button>
+        ) : (
+          <button
+            className="btn-analyze"
+            onClick={handleRunBacktest}
+            disabled={running || !symbol.trim() || (backtestScope === 'single' && !mcSupported)}
+          >
+            {running ? 'Running backtest…' : 'Run Backtest'}
+          </button>
         )}
       </div>
 
       <div className="results-panel">
         {mode === 'single' && result && <ResultsPane result={result} />}
         {mode === 'compare' && comparison && <MonteCarloComparison payload={comparison} />}
+        {mode === 'backtest' && backtest && <MonteCarloBacktest payload={backtest} />}
         {mode === 'single' && !result && (
           <div className="empty-state">
             <div className="empty-icon">◬</div>
@@ -722,6 +948,18 @@ export default function MonteCarloSimulation() {
               Enter a spot, DTE, and volatility (or fetch a live symbol), then rank all 12 MC-capable
               strategies by POP × EV against a single shared set of {pathCount.toLocaleString()} simulated
               price paths. Strikes are auto-picked at ATM / 5% / 10% OTM and priced via Black-Scholes.
+            </div>
+          </div>
+        )}
+        {mode === 'backtest' && !backtest && (
+          <div className="empty-state">
+            <div className="empty-icon">◬</div>
+            <div className="empty-title">Historical Backtest</div>
+            <div className="empty-desc">
+              Enter a symbol, DTE, lookback, and cadence. The engine replays the strategy across
+              rolling historical windows — auto-picking strikes with trailing realized vol at each entry
+              and measuring realized P/L at the bar nearest entry + DTE. Each window also gets an
+              entry-time Monte Carlo POP so the Brier score measures model calibration.
             </div>
           </div>
         )}

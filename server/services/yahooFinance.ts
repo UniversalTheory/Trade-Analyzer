@@ -189,6 +189,8 @@ export class YahooFinanceProvider implements MarketDataProvider {
       '1y':  daysAgo(365),
       '2y':  daysAgo(730),
       '5y':  daysAgo(1825),
+      '7y':  daysAgo(2555),
+      '10y': daysAgo(3650),
     };
 
     // Interval → Yahoo Finance interval token
