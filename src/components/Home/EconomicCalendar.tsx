@@ -71,10 +71,14 @@ function groupByDate(events: EconomicEvent[]): { key: string; label: string; ite
 }
 
 export default function EconomicCalendar({ events, unavailable }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const todayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    todayRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' });
+    if (containerRef.current && todayRef.current) {
+      containerRef.current.scrollTop =
+        todayRef.current.offsetTop - containerRef.current.offsetTop;
+    }
   }, [events]);
 
   if (unavailable) {
@@ -96,7 +100,7 @@ export default function EconomicCalendar({ events, unavailable }: Props) {
   const todayKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
   return (
-    <div className="eco-cal-feed">
+    <div ref={containerRef} className="eco-cal-feed">
       {groups.map(group => (
         <div key={group.key} className="eco-cal-group">
           <div
