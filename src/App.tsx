@@ -3,15 +3,17 @@ import OptionsCalculator from './components/OptionsCalculator/OptionsCalculator'
 import MarketOverview from './components/Home/MarketOverview';
 import SectorResearch from './components/Sector/SectorResearch';
 import TickerResearch, { type CalcPrefill } from './components/Ticker/TickerResearch';
+import Portfolio from './components/Portfolio/Portfolio';
 import { useRevealObserver } from './hooks/useRevealObserver';
 
-type Tab = 'home' | 'sector' | 'ticker' | 'options';
+type Tab = 'home' | 'sector' | 'ticker' | 'options' | 'portfolio';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'home',    label: 'Market',   icon: '◈' },
-  { id: 'sector',  label: 'Sectors',  icon: '⬡' },
-  { id: 'ticker',  label: 'Research', icon: '⌕' },
-  { id: 'options', label: 'Options',  icon: 'Δ' },
+  { id: 'home',      label: 'Market',    icon: '◈' },
+  { id: 'sector',    label: 'Sectors',   icon: '⬡' },
+  { id: 'ticker',    label: 'Research',  icon: '⌕' },
+  { id: 'options',   label: 'Options',   icon: 'Δ' },
+  { id: 'portfolio', label: 'Portfolio', icon: '◐' },
 ];
 
 export default function App() {
@@ -90,6 +92,7 @@ export default function App() {
             onPrefillConsumed={() => setCalcPrefill(null)}
           />
         </div>
+        <div className={activeTab === 'portfolio' ? '' : 'tab-hidden'}><Portfolio /></div>
       </main>
     </>
   );
