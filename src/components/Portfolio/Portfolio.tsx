@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AddPositionForm from './AddPositionForm';
 import PortfolioTable from './PortfolioTable';
 import { AnimatedNumber } from '../AnimatedNumber';
 import { ticker } from '../../api/client';
-import type { QuoteData } from '../../api/types';
+import type { QuoteData, PriceBar } from '../../api/types';
 import {
   loadPortfolio,
   savePortfolio,
@@ -12,6 +12,7 @@ import {
 } from '../../utils/portfolioStorage';
 import {
   computePortfolioTotals,
+  computePortfolioPeriodTotals,
   fmtUSD,
   fmtPct,
   signed,
@@ -19,9 +20,28 @@ import {
 
 const REFRESH_INTERVAL_MS = 30_000;
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function tenYearsAgoISO(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 10);
+  return d.toISOString().slice(0, 10);
+}
+
+function fmtDateLong(iso: string): string {
+  // 'YYYY-MM-DD' → 'Mar 15, 2024'. Build from parts so we don't get TZ shifts.
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export default function Portfolio() {
   const [state, setState] = useState<PortfolioState>(loadPortfolio);
   const [quotes, setQuotes] = useState<Record<string, QuoteData>>({});
+  const [history, setHistory] = useState<Record<string, PriceBar[]>>({});
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [cashInput, setCashInput] = useState(String(state.cash || ''));
   const cashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,6 +89,35 @@ export default function Portfolio() {
     return () => clearInterval(id);
   }, [fetchQuotes, symbolsKey, state.positions.length]);
 
+  // Fetch daily history for any symbols missing it once the user picks a date.
+  useEffect(() => {
+    if (!state.selectedDate || state.positions.length === 0) return;
+    const missing = state.positions
+      .map(p => p.symbol)
+      .filter(sym => !(sym in history));
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    setHistoryLoading(true);
+    // Each promise resolves with {sym, bars}; failures store [] so we don't loop-fetch.
+    Promise.all(
+      missing.map(sym =>
+        ticker.getHistory(sym, '10y', '1d')
+          .then(bars => ({ sym, bars }))
+          .catch(() => ({ sym, bars: [] as PriceBar[] })),
+      ),
+    ).then(results => {
+      if (cancelled) return;
+      setHistory(prev => {
+        const next = { ...prev };
+        for (const r of results) next[r.sym] = r.bars;
+        return next;
+      });
+      setHistoryLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [state.selectedDate, symbolsKey, history, state.positions]);
+
   function handleAdd(position: StockPosition, initialQuote: QuoteData) {
     setState(s => ({ ...s, positions: [...s.positions, position] }));
     setQuotes(prev => ({ ...prev, [position.symbol]: initialQuote }));
@@ -84,9 +133,18 @@ export default function Portfolio() {
           delete copy[removed.symbol];
           return copy;
         });
+        setHistory(prev => {
+          const copy = { ...prev };
+          delete copy[removed.symbol];
+          return copy;
+        });
       }
       return { ...s, positions: next };
     });
+  }
+
+  function handleDateChange(value: string) {
+    setState(s => ({ ...s, selectedDate: value || null }));
   }
 
   function handleCashChange(raw: string) {
@@ -106,6 +164,24 @@ export default function Portfolio() {
   const totals = computePortfolioTotals(state.positions, priceBySymbol, state.cash);
 
   const plColor = totals.totalPL >= 0 ? 'var(--color-green)' : 'var(--color-red)';
+
+  const periodTotals = useMemo(() => {
+    if (!state.selectedDate) return null;
+    return computePortfolioPeriodTotals(state.positions, priceBySymbol, history, state.selectedDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.selectedDate, symbolsKey, quotes, history, state.positions]);
+
+  const periodColor = periodTotals && periodTotals.pl >= 0
+    ? 'var(--color-green)'
+    : 'var(--color-red)';
+
+  const someHistoryMissing = state.positions.some(p => !(p.symbol in history));
+  const periodWaiting = !!state.selectedDate
+    && state.positions.length > 0
+    && (historyLoading || someHistoryMissing);
+
+  const minDate = tenYearsAgoISO();
+  const maxDate = todayISO();
 
   return (
     <div className="portfolio-page">
@@ -189,6 +265,64 @@ export default function Portfolio() {
                 </>
               ) : '—'}
             </span>
+          </div>
+
+          <div className="portfolio-totals-divider" />
+
+          <div className="portfolio-period-row">
+            <div className="portfolio-period-picker">
+              <label className="portfolio-totals-label" htmlFor="portfolio-period-date">
+                Period P/L since
+              </label>
+              <input
+                id="portfolio-period-date"
+                className="portfolio-input portfolio-period-input"
+                type="date"
+                min={minDate}
+                max={maxDate}
+                value={state.selectedDate ?? ''}
+                onChange={e => handleDateChange(e.target.value)}
+              />
+              {state.selectedDate && (
+                <button
+                  className="portfolio-period-clear"
+                  onClick={() => handleDateChange('')}
+                  title="Clear date"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            <div className="portfolio-period-value">
+              {!state.selectedDate ? (
+                <span className="portfolio-period-hint">Pick a date to compare</span>
+              ) : periodWaiting ? (
+                <span className="portfolio-period-hint">Loading history…</span>
+              ) : !periodTotals || periodTotals.pricedCount === 0 ? (
+                <span className="portfolio-period-hint">No data on that date</span>
+              ) : (
+                <>
+                  <span className="portfolio-totals-value" style={{ color: periodColor }}>
+                    {signed(periodTotals.pl)}$<AnimatedNumber value={Math.abs(periodTotals.pl)} format={fmtUSD} />
+                    {' '}({signed(periodTotals.pl)}{fmtPct(periodTotals.plPct)})
+                  </span>
+                  <div className="portfolio-period-meta">
+                    Since {fmtDateLong(state.selectedDate)}
+                    {periodTotals.lateAddCount > 0 && (
+                      <span title="These positions were added after the selected date — their cost basis is used as the baseline.">
+                        {' · '}{periodTotals.lateAddCount} late-added
+                      </span>
+                    )}
+                    {periodTotals.excludedCount > 0 && (
+                      <span title="No price data available on/before the selected date.">
+                        {' · '}{periodTotals.excludedCount} excluded
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
