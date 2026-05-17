@@ -117,7 +117,14 @@ export function computeAllocation(
   for (const v of views) {
     let label: string;
     if (dimension === 'sector') {
-      label = v.profile?.sector || 'Unknown';
+      if (v.profile?.sector) {
+        label = v.profile.sector;
+      } else {
+        // Stocks usually have a sector; ETFs and crypto don't. Bucket them
+        // by asset class so they don't all merge into "Unknown".
+        const ac = classifyAssetClass(v.symbol, v.profile);
+        label = ac === 'ETF / Fund' || ac === 'Crypto' ? ac : 'Unknown';
+      }
     } else if (dimension === 'assetClass') {
       label = classifyAssetClass(v.symbol, v.profile);
     } else {
@@ -191,38 +198,83 @@ export function computeConcentration(
 
 // ── Color palette ────────────────────────────────────────────────────────
 
-// Stable color assignment by label so slices don't reshuffle hues between renders.
-// Falls back to a deterministic hash for unknown labels.
-const PALETTE = [
+// Labels with reserved colors. These hues are intentionally NOT in the general
+// palette below, so a fixed-color label can never collide with a palette-assigned
+// label in the same chart.
+const FIXED_COLORS: Record<string, string> = {
+  // Neutrals — used across dimensions for "no info" / cash-like buckets.
+  'Cash':                    '#64748b', // slate
+  'Unknown':                 '#475569', // dark slate
+  'Global / Mixed':          '#94a3b8', // light slate
+  'Other':                   '#78716c', // stone
+
+  // Asset class.
+  'Stock':                   '#0ea5e9', // sky
+  'ETF / Fund':              '#a855f7', // violet
+  'Crypto':                  '#fbbf24', // amber
+
+  // Geography — reuse the asset-class hues that they're conceptually closest to.
+  'US':                      '#0ea5e9', // sky (same as Stock — never in same chart)
+  'International Developed': '#a855f7', // violet (same as ETF/Fund — never in same chart)
+  'Emerging Markets':        '#ec4899', // pink
+  'Digital':                 '#fbbf24', // amber (same as Crypto — same concept)
+};
+
+// General palette for labels without a fixed color (i.e. sector names).
+// Deliberately disjoint from FIXED_COLORS hues to prevent collisions.
+const GENERAL_PALETTE = [
   '#3b82f6', // blue
   '#22c55e', // green
   '#f97316', // orange
-  '#8b5cf6', // purple
   '#06b6d4', // cyan
-  '#f59e0b', // yellow
   '#ef4444', // red
-  '#ec4899', // pink
   '#14b8a6', // teal
-  '#a855f7', // violet
   '#84cc16', // lime
-  '#64748b', // slate (fallback / Unknown)
+  '#eab308', // yellow
+  '#8b5cf6', // purple
+  '#f472b6', // light pink
+  '#65a30d', // dark lime
+  '#e11d48', // rose
 ];
 
-const FIXED_COLORS: Record<string, string> = {
-  'Cash':                    '#64748b',
-  'Unknown':                 '#475569',
-  'Global / Mixed':          '#94a3b8',
-  'Digital':                 '#f59e0b',
-  'US':                      '#3b82f6',
-  'International Developed': '#22c55e',
-  'Emerging Markets':        '#f97316',
-  'Stock':                   '#3b82f6',
-  'ETF / Fund':              '#22c55e',
-  'Crypto':                  '#f59e0b',
-  'Other':                   '#64748b',
-};
+// Overflow: golden-angle HSL spread guarantees distinct hues for any extra labels.
+function overflowColor(idx: number): string {
+  const hue = (idx * 137.508) % 360;
+  return `hsl(${hue.toFixed(0)}, 65%, 55%)`;
+}
 
-export function colorForLabel(label: string, indexFallback: number): string {
-  if (FIXED_COLORS[label]) return FIXED_COLORS[label];
-  return PALETTE[indexFallback % PALETTE.length];
+/**
+ * Assign colors to a list of labels, guaranteeing no two distinct labels share
+ * a color within the same chart. Fixed-color labels get their reserved hue;
+ * remaining labels draw from the general palette, skipping any hue already
+ * claimed by a fixed-color label in the same set.
+ */
+export function assignColors(labels: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  const used = new Set<string>();
+
+  for (const label of labels) {
+    const fixed = FIXED_COLORS[label];
+    if (fixed && !out[label]) {
+      out[label] = fixed;
+      used.add(fixed);
+    }
+  }
+
+  let palIdx = 0;
+  let overflowIdx = 0;
+  for (const label of labels) {
+    if (out[label]) continue;
+    while (palIdx < GENERAL_PALETTE.length && used.has(GENERAL_PALETTE[palIdx])) {
+      palIdx++;
+    }
+    if (palIdx < GENERAL_PALETTE.length) {
+      out[label] = GENERAL_PALETTE[palIdx];
+      used.add(GENERAL_PALETTE[palIdx]);
+      palIdx++;
+    } else {
+      out[label] = overflowColor(overflowIdx++);
+    }
+  }
+  return out;
 }

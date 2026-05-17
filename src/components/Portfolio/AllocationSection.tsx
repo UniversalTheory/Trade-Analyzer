@@ -4,7 +4,7 @@ import type { PortfolioPosition } from '../../utils/portfolioStorage';
 import type { AssetProfile } from '../../api/types';
 import {
   computeAllocation,
-  colorForLabel,
+  assignColors,
   type AllocationDimension,
   type AllocationSlice,
 } from '../../utils/portfolioAnalysis';
@@ -40,7 +40,8 @@ export default function AllocationSection({
     [positions, priceBySymbol, profileBySymbol, cash, dimension],
   );
 
-  const colored = slices.map((s, i) => ({ ...s, color: colorForLabel(s.label, i) }));
+  const colorMap = useMemo(() => assignColors(slices.map(s => s.label)), [slices]);
+  const colored = slices.map(s => ({ ...s, color: colorMap[s.label] }));
   const totalValue = slices.reduce((sum, s) => sum + s.value, 0);
 
   return (
@@ -123,6 +124,11 @@ export default function AllocationSection({
         </div>
       )}
 
+      {dimension === 'sector' && slices.some(s => s.label === 'ETF / Fund') && (
+        <div className="analysis-disclosure">
+          ETFs are shown as a single <em>ETF / Fund</em> slice here — their underlying sector mix isn't broken out yet.
+        </div>
+      )}
       {dimension === 'geography' && slices.length > 0 && (
         <div className="analysis-disclosure">
           ETF geography is approximate — fund holdings aren't fetched. ETFs without a clear category land in <em>Global / Mixed</em>.
