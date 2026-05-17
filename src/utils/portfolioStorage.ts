@@ -45,13 +45,18 @@ export function savePortfolio(state: PortfolioState): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-export function newStockPosition(symbol: string, shares: number, avgPrice: number): StockPosition {
+export function newStockPosition(
+  symbol: string,
+  shares: number,
+  avgPrice: number,
+  addedAt?: string,
+): StockPosition {
   return {
     id: crypto.randomUUID(),
     type: 'stock',
     symbol: symbol.toUpperCase(),
     shares,
     avgPrice,
-    addedAt: new Date().toISOString().slice(0, 10),
+    addedAt: addedAt || new Date().toISOString().slice(0, 10),
   };
 }

@@ -1450,6 +1450,30 @@ body {
   width: 200px;
 }
 
+.portfolio-add-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.portfolio-add-date-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.portfolio-add-date-input {
+  width: 140px;
+  font-family: 'JetBrains Mono', monospace;
+  color-scheme: dark;
+}
+
+.portfolio-add-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
+
 .portfolio-add-btn {
   background: var(--color-blue);
   border: 1px solid var(--color-blue);

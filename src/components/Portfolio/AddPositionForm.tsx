@@ -8,10 +8,15 @@ interface Props {
   onAdd: (position: StockPosition, initialQuote: QuoteData) => void;
 }
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function AddPositionForm({ existingSymbols, onAdd }: Props) {
   const [symbol, setSymbol] = useState('');
   const [shares, setShares] = useState('');
   const [avgPrice, setAvgPrice] = useState('');
+  const [addedAt, setAddedAt] = useState(todayISO);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -19,6 +24,7 @@ export default function AddPositionForm({ existingSymbols, onAdd }: Props) {
     setSymbol('');
     setShares('');
     setAvgPrice('');
+    setAddedAt(todayISO());
     setError(null);
   }
 
@@ -26,6 +32,9 @@ export default function AddPositionForm({ existingSymbols, onAdd }: Props) {
     const sym = symbol.trim().toUpperCase();
     const sharesNum = parseFloat(shares);
     const priceNum = parseFloat(avgPrice);
+    const today = todayISO();
+    const dateRaw = addedAt.trim();
+    const dateClean = dateRaw && dateRaw <= today ? dateRaw : today;
 
     if (!sym) { setError('Enter a symbol'); return; }
     if (!isFinite(sharesNum) || sharesNum <= 0) { setError('Shares must be > 0'); return; }
@@ -36,7 +45,7 @@ export default function AddPositionForm({ existingSymbols, onAdd }: Props) {
     setError(null);
     try {
       const quote = await ticker.getQuote(sym);
-      const position = newStockPosition(sym, sharesNum, priceNum);
+      const position = newStockPosition(sym, sharesNum, priceNum, dateClean);
       onAdd(position, quote);
       reset();
     } catch {
@@ -84,6 +93,21 @@ export default function AddPositionForm({ existingSymbols, onAdd }: Props) {
         placeholder="Purchase $"
         disabled={submitting}
       />
+      <div
+        className="portfolio-add-date"
+        title="Date acquired — if bought across multiple dates, use the earliest"
+      >
+        <span className="portfolio-add-date-label">Acquired</span>
+        <input
+          className="portfolio-input portfolio-add-date-input"
+          type="date"
+          max={todayISO()}
+          value={addedAt}
+          onChange={e => { setAddedAt(e.target.value); setError(null); }}
+          onKeyDown={handleKey}
+          disabled={submitting}
+        />
+      </div>
       <button
         className="portfolio-add-btn"
         onClick={handleAdd}
