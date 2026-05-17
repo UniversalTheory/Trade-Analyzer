@@ -2146,6 +2146,114 @@ body {
   font-weight: 600;
 }
 
+/* ── Suggestions ── */
+.suggestions-source-pill {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-primary);
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.suggestion-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-left-width: 3px;
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suggestion-card.sev-warning {
+  border-left-color: var(--color-red);
+}
+
+.suggestion-card.sev-notice {
+  border-left-color: var(--color-yellow);
+}
+
+.suggestion-card.sev-info {
+  border-left-color: var(--color-blue);
+}
+
+.suggestion-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.suggestion-card-icon {
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 700;
+  width: 16px;
+  text-align: center;
+}
+
+.suggestion-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
+}
+
+.suggestion-card-source-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-purple);
+  color: var(--color-purple);
+  border-radius: 999px;
+  margin-left: auto;
+}
+
+.suggestion-card-rationale {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.suggestion-card-candidates {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.suggestion-candidate-pill {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.suggestion-candidate-hint {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 10px;
+}
+
 /* ── Macro Indicators ── */
 .macro-panel {
   background: var(--bg-card);

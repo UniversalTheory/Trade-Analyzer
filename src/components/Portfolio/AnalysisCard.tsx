@@ -6,6 +6,7 @@ import type { LookbackId } from '../../utils/portfolioRisk';
 import AllocationSection from './AllocationSection';
 import ConcentrationSection from './ConcentrationSection';
 import RiskSection from './RiskSection';
+import SuggestionsSection from './SuggestionsSection';
 
 interface Props {
   positions: PortfolioPosition[];
@@ -77,7 +78,14 @@ export default function AnalysisCard(props: Props) {
             positions={props.positions}
             priceBySymbol={props.priceBySymbol}
           />
-          {/* Phase 3c (suggestions) will mount here. */}
+          <SuggestionsSection
+            positions={props.positions}
+            priceBySymbol={props.priceBySymbol}
+            profileBySymbol={props.profileBySymbol}
+            cash={props.cash}
+            profileLoading={props.profileLoading}
+            someProfileMissing={props.someProfileMissing}
+          />
         </div>
       )}
     </div>
