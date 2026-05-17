@@ -2016,6 +2016,136 @@ body {
   font-weight: 700;
 }
 
+/* ── Risk stats ── */
+.risk-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.risk-stat {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.risk-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.risk-stat-value {
+  font-size: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.risk-stat-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.risk-band-pill {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+}
+
+/* ── Correlation matrix heatmap ── */
+.risk-corr {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.risk-corr-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.risk-corr-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-label);
+  font-weight: 700;
+}
+
+.risk-corr-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.risk-corr-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+}
+
+.risk-corr-table {
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.risk-corr-table th,
+.risk-corr-table td {
+  padding: 6px 8px;
+  text-align: center;
+  min-width: 52px;
+  white-space: nowrap;
+  border: 1px solid var(--border-primary);
+}
+
+.risk-corr-table thead th {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-size: 10px;
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.risk-corr-table tbody th {
+  color: var(--text-secondary);
+  text-align: right;
+  background: var(--bg-card);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  font-weight: 600;
+}
+
+.risk-corr-table td {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 /* ── Macro Indicators ── */
 .macro-panel {
   background: var(--bg-card);

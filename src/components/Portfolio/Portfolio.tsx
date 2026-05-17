@@ -18,6 +18,7 @@ import {
   fmtPct,
   signed,
 } from '../../utils/portfolioCalc';
+import type { LookbackId } from '../../utils/portfolioRisk';
 
 const REFRESH_INTERVAL_MS = 30_000;
 
@@ -45,6 +46,9 @@ export default function Portfolio() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [profiles, setProfiles] = useState<Record<string, AssetProfile>>({});
   const [profileLoading, setProfileLoading] = useState(false);
+  const [spyHistory, setSpyHistory] = useState<PriceBar[] | undefined>(undefined);
+  const [analysisExpanded, setAnalysisExpanded] = useState(false);
+  const [riskLookback, setRiskLookback] = useState<LookbackId>('1y');
   const [refreshing, setRefreshing] = useState(false);
   const [cashInput, setCashInput] = useState(String(state.cash || ''));
   const cashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -121,9 +125,11 @@ export default function Portfolio() {
     return () => { cancelled = true; };
   }, [symbolsKey, profiles, state.positions]);
 
-  // Fetch daily history for any symbols missing it once the user picks a date.
+  // Fetch daily history for any symbols missing it.
+  // Triggered when the user picks a period date OR expands the Analysis card.
   useEffect(() => {
-    if (!state.selectedDate || state.positions.length === 0) return;
+    const needHistory = !!state.selectedDate || analysisExpanded;
+    if (!needHistory || state.positions.length === 0) return;
     const missing = state.positions
       .map(p => p.symbol)
       .filter(sym => !(sym in history));
@@ -148,7 +154,17 @@ export default function Portfolio() {
       setHistoryLoading(false);
     });
     return () => { cancelled = true; };
-  }, [state.selectedDate, symbolsKey, history, state.positions]);
+  }, [state.selectedDate, analysisExpanded, symbolsKey, history, state.positions]);
+
+  // SPY history is needed for portfolio beta. Fetch once when analysis is first expanded.
+  useEffect(() => {
+    if (!analysisExpanded || spyHistory !== undefined) return;
+    let cancelled = false;
+    ticker.getHistory('SPY', '10y', '1d')
+      .then(bars => { if (!cancelled) setSpyHistory(bars); })
+      .catch(() => { if (!cancelled) setSpyHistory([]); });
+    return () => { cancelled = true; };
+  }, [analysisExpanded, spyHistory]);
 
   function handleAdd(position: StockPosition, initialQuote: QuoteData) {
     setState(s => ({ ...s, positions: [...s.positions, position] }));
@@ -370,9 +386,17 @@ export default function Portfolio() {
         positions={state.positions}
         priceBySymbol={priceBySymbol}
         profileBySymbol={profiles}
+        historyBySymbol={history}
+        spyHistory={spyHistory}
         cash={state.cash}
         profileLoading={profileLoading}
         someProfileMissing={someProfileMissing}
+        historyLoading={historyLoading || (analysisExpanded && spyHistory === undefined)}
+        someHistoryMissing={someHistoryMissing}
+        riskLookback={riskLookback}
+        onRiskLookbackChange={setRiskLookback}
+        expanded={analysisExpanded}
+        onToggleExpanded={() => setAnalysisExpanded(e => !e)}
       />
     </div>
   );

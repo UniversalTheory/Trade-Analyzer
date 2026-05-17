@@ -1,23 +1,30 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import type { PortfolioPosition } from '../../utils/portfolioStorage';
-import type { AssetProfile } from '../../api/types';
+import type { AssetProfile, PriceBar } from '../../api/types';
 import { computeConcentration } from '../../utils/portfolioAnalysis';
+import type { LookbackId } from '../../utils/portfolioRisk';
 import AllocationSection from './AllocationSection';
 import ConcentrationSection from './ConcentrationSection';
+import RiskSection from './RiskSection';
 
 interface Props {
   positions: PortfolioPosition[];
   priceBySymbol: Record<string, number | undefined>;
   profileBySymbol: Record<string, AssetProfile | undefined>;
+  historyBySymbol: Record<string, PriceBar[] | undefined>;
+  spyHistory: PriceBar[] | undefined;
   cash: number;
   profileLoading: boolean;
   someProfileMissing: boolean;
+  historyLoading: boolean;
+  someHistoryMissing: boolean;
+  riskLookback: LookbackId;
+  onRiskLookbackChange: (next: LookbackId) => void;
+  expanded: boolean;
+  onToggleExpanded: () => void;
 }
 
 export default function AnalysisCard(props: Props) {
-  const [expanded, setExpanded] = useState(false);
-
-  // Headline summary for the collapsed state.
   const headline = useMemo(() => {
     if (props.positions.length === 0) return 'Add positions to enable analysis';
     const conc = computeConcentration(props.positions, props.priceBySymbol);
@@ -29,24 +36,24 @@ export default function AnalysisCard(props: Props) {
   const disabled = props.positions.length === 0;
 
   return (
-    <div className={`analysis-card ${expanded ? 'is-expanded' : ''}`}>
+    <div className={`analysis-card ${props.expanded ? 'is-expanded' : ''}`}>
       <button
         className="analysis-card-header"
-        onClick={() => !disabled && setExpanded(e => !e)}
+        onClick={() => !disabled && props.onToggleExpanded()}
         type="button"
         disabled={disabled}
-        aria-expanded={expanded}
+        aria-expanded={props.expanded}
       >
         <div className="analysis-card-header-left">
           <span className="analysis-card-title">Analysis</span>
           <span className="analysis-card-headline">{headline}</span>
         </div>
         {!disabled && (
-          <span className={`analysis-card-chevron ${expanded ? 'is-expanded' : ''}`}>▾</span>
+          <span className={`analysis-card-chevron ${props.expanded ? 'is-expanded' : ''}`}>▾</span>
         )}
       </button>
 
-      {expanded && (
+      {props.expanded && (
         <div className="analysis-card-body">
           <AllocationSection
             positions={props.positions}
@@ -56,11 +63,21 @@ export default function AnalysisCard(props: Props) {
             profileLoading={props.profileLoading}
             someProfileMissing={props.someProfileMissing}
           />
+          <RiskSection
+            positions={props.positions}
+            priceBySymbol={props.priceBySymbol}
+            historyBySymbol={props.historyBySymbol}
+            spyHistory={props.spyHistory}
+            lookback={props.riskLookback}
+            onLookbackChange={props.onRiskLookbackChange}
+            historyLoading={props.historyLoading}
+            someHistoryMissing={props.someHistoryMissing}
+          />
           <ConcentrationSection
             positions={props.positions}
             priceBySymbol={props.priceBySymbol}
           />
-          {/* Phase 3b (risk metrics) and 3c (suggestions) will mount here. */}
+          {/* Phase 3c (suggestions) will mount here. */}
         </div>
       )}
     </div>
