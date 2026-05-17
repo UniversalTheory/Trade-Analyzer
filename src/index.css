@@ -1729,6 +1729,293 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* ── Analysis card (expandable) ── */
+.analysis-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+.analysis-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 14px 18px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.analysis-card-header:hover:not(:disabled) {
+  background: var(--bg-secondary);
+}
+
+.analysis-card-header:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.analysis-card-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.analysis-card-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-label);
+  font-weight: 700;
+}
+
+.analysis-card-headline {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.analysis-card-chevron {
+  font-size: 14px;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.analysis-card-chevron.is-expanded {
+  transform: rotate(180deg);
+}
+
+.analysis-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 4px 18px 20px;
+  border-top: 1px solid var(--border-primary);
+}
+
+/* ── Analysis sections (shared) ── */
+.analysis-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+}
+
+.analysis-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.analysis-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-label);
+  font-weight: 700;
+  margin: 0;
+}
+
+.analysis-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 14px 4px;
+  text-align: center;
+}
+
+.analysis-disclosure {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-primary);
+  margin-top: 4px;
+}
+
+.analysis-disclosure em {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ── Dimension toggle pills ── */
+.analysis-dim-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.analysis-dim-pill {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.analysis-dim-pill:hover {
+  color: var(--text-secondary);
+}
+
+.analysis-dim-pill.is-active {
+  background: var(--color-blue);
+  color: #fff;
+}
+
+/* ── Allocation donut + legend ── */
+.allocation-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 24px;
+  align-items: center;
+}
+
+.allocation-donut {
+  position: relative;
+  width: 100%;
+}
+
+.allocation-donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.allocation-donut-center-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.allocation-donut-center-value {
+  font-size: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.allocation-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.allocation-legend-row {
+  display: grid;
+  grid-template-columns: 14px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 3px 4px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.allocation-legend-row:hover {
+  background: var(--bg-secondary);
+}
+
+.allocation-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.allocation-legend-label {
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.allocation-legend-pct {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.allocation-legend-value {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+@media (max-width: 720px) {
+  .allocation-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Concentration stats ── */
+.concentration-band-pill {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.concentration-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.concentration-stat {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.concentration-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.concentration-stat-value {
+  font-size: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
 /* ── Macro Indicators ── */
 .macro-panel {
   background: var(--bg-card);

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AddPositionForm from './AddPositionForm';
 import PortfolioTable from './PortfolioTable';
+import AnalysisCard from './AnalysisCard';
 import { AnimatedNumber } from '../AnimatedNumber';
 import { ticker } from '../../api/client';
-import type { QuoteData, PriceBar } from '../../api/types';
+import type { QuoteData, PriceBar, AssetProfile } from '../../api/types';
 import {
   loadPortfolio,
   savePortfolio,
@@ -42,6 +43,8 @@ export default function Portfolio() {
   const [quotes, setQuotes] = useState<Record<string, QuoteData>>({});
   const [history, setHistory] = useState<Record<string, PriceBar[]>>({});
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [profiles, setProfiles] = useState<Record<string, AssetProfile>>({});
+  const [profileLoading, setProfileLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [cashInput, setCashInput] = useState(String(state.cash || ''));
   const cashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -88,6 +91,35 @@ export default function Portfolio() {
     }, REFRESH_INTERVAL_MS);
     return () => clearInterval(id);
   }, [fetchQuotes, symbolsKey, state.positions.length]);
+
+  // Fetch profile (sector, country, fund category) for any symbols missing it.
+  // Profile data is essentially static; we fetch once per symbol per session.
+  useEffect(() => {
+    if (state.positions.length === 0) return;
+    const missing = state.positions
+      .map(p => p.symbol)
+      .filter(sym => !(sym in profiles));
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    setProfileLoading(true);
+    Promise.all(
+      missing.map(sym =>
+        ticker.getProfile(sym)
+          .then(prof => ({ sym, prof }))
+          .catch(() => ({ sym, prof: { symbol: sym, description: '' } as AssetProfile })),
+      ),
+    ).then(results => {
+      if (cancelled) return;
+      setProfiles(prev => {
+        const next = { ...prev };
+        for (const r of results) next[r.sym] = r.prof;
+        return next;
+      });
+      setProfileLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [symbolsKey, profiles, state.positions]);
 
   // Fetch daily history for any symbols missing it once the user picks a date.
   useEffect(() => {
@@ -138,6 +170,11 @@ export default function Portfolio() {
           delete copy[removed.symbol];
           return copy;
         });
+        setProfiles(prev => {
+          const copy = { ...prev };
+          delete copy[removed.symbol];
+          return copy;
+        });
       }
       return { ...s, positions: next };
     });
@@ -179,6 +216,8 @@ export default function Portfolio() {
   const periodWaiting = !!state.selectedDate
     && state.positions.length > 0
     && (historyLoading || someHistoryMissing);
+
+  const someProfileMissing = state.positions.some(p => !(p.symbol in profiles));
 
   const minDate = tenYearsAgoISO();
   const maxDate = todayISO();
@@ -326,6 +365,15 @@ export default function Portfolio() {
           </div>
         </div>
       </div>
+
+      <AnalysisCard
+        positions={state.positions}
+        priceBySymbol={priceBySymbol}
+        profileBySymbol={profiles}
+        cash={state.cash}
+        profileLoading={profileLoading}
+        someProfileMissing={someProfileMissing}
+      />
     </div>
   );
 }
