@@ -40,6 +40,7 @@ export default function PortfolioTable({ positions, quotes, onRemove, onUpdate }
         <span className="ta-right">Shares</span>
         <span className="ta-right">Trade $</span>
         <span className="ta-right">Current $</span>
+        <span className="ta-right">Day Change</span>
         <span className="ta-right">P/L $</span>
         <span className="ta-right">P/L %</span>
         <span />
@@ -63,6 +64,10 @@ export default function PortfolioTable({ positions, quotes, onRemove, onUpdate }
         const plColor = !metrics
           ? 'var(--text-muted)'
           : metrics.pl >= 0 ? 'var(--color-green)' : 'var(--color-red)';
+        const dayChangePct = quote?.changePercent;
+        const dayColor = dayChangePct === undefined
+          ? 'var(--text-muted)'
+          : dayChangePct >= 0 ? 'var(--color-green)' : 'var(--color-red)';
 
         return (
           <div key={p.id} className="portfolio-table-row">
@@ -78,6 +83,15 @@ export default function PortfolioTable({ positions, quotes, onRemove, onUpdate }
             <span className="global-row-price ta-right">
               {currentPrice !== undefined
                 ? <AnimatedNumber value={currentPrice} format={fmtUSD} prefix="$" />
+                : '—'}
+            </span>
+
+            <span className="global-row-change ta-right" style={{ color: dayColor }}>
+              {dayChangePct !== undefined
+                ? <AnimatedNumber
+                    value={dayChangePct}
+                    format={n => `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`}
+                  />
                 : '—'}
             </span>
 

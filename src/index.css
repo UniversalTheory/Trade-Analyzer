@@ -1515,7 +1515,7 @@ body {
 .portfolio-table-head,
 .portfolio-table-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 56px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 56px;
   gap: 12px;
   align-items: center;
 }
@@ -1610,7 +1610,7 @@ body {
 }
 
 .portfolio-edit-date-wrap {
-  grid-column: 4 / 7;
+  grid-column: 4 / 8;
   display: flex;
   align-items: center;
   gap: 6px;
