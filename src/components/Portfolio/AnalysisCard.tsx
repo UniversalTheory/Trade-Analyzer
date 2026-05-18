@@ -64,6 +64,10 @@ export default function AnalysisCard(props: Props) {
             profileLoading={props.profileLoading}
             someProfileMissing={props.someProfileMissing}
           />
+          <ConcentrationSection
+            positions={props.positions}
+            priceBySymbol={props.priceBySymbol}
+          />
           <RiskSection
             positions={props.positions}
             priceBySymbol={props.priceBySymbol}
@@ -73,10 +77,6 @@ export default function AnalysisCard(props: Props) {
             onLookbackChange={props.onRiskLookbackChange}
             historyLoading={props.historyLoading}
             someHistoryMissing={props.someHistoryMissing}
-          />
-          <ConcentrationSection
-            positions={props.positions}
-            priceBySymbol={props.priceBySymbol}
           />
           <SuggestionsSection
             positions={props.positions}
