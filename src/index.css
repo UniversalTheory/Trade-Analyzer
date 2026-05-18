@@ -2016,6 +2016,12 @@ body {
   font-weight: 700;
 }
 
+.concentration-stat-meta {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
 /* ── Risk stats ── */
 .risk-stats-grid {
   display: grid;

@@ -154,7 +154,9 @@ export type HhiBand = 'Diversified' | 'Moderate' | 'Concentrated';
 export interface ConcentrationMetrics {
   count: number;          // number of priced positions (cash excluded)
   largestPct: number;     // 0–1, largest single position as fraction of holdings
+  largestSymbol: string;  // symbol of the largest holding (empty when count===0)
   top3Pct: number;        // 0–1, top 3 positions combined
+  top3Symbols: string[];  // up to 3 symbols ordered largest → smallest
   hhi: number;            // 0–1, Herfindahl–Hirschman Index of holdings only
   hhiBand: HhiBand;
 }
@@ -169,28 +171,39 @@ export function computeConcentration(
   positions: PortfolioPosition[],
   priceBySymbol: Record<string, number | undefined>,
 ): ConcentrationMetrics {
-  const values: number[] = [];
+  const entries: { symbol: string; value: number }[] = [];
   for (const p of positions) {
     const price = priceBySymbol[p.symbol];
     if (price === undefined || !isFinite(price)) continue;
     const v = p.shares * price;
-    if (v > 0) values.push(v);
+    if (v > 0) entries.push({ symbol: p.symbol, value: v });
   }
 
-  if (values.length === 0) {
-    return { count: 0, largestPct: 0, top3Pct: 0, hhi: 0, hhiBand: 'Diversified' };
+  if (entries.length === 0) {
+    return {
+      count: 0,
+      largestPct: 0,
+      largestSymbol: '',
+      top3Pct: 0,
+      top3Symbols: [],
+      hhi: 0,
+      hhiBand: 'Diversified',
+    };
   }
 
-  values.sort((a, b) => b - a);
-  const total = values.reduce((s, n) => s + n, 0);
-  const largestPct = values[0] / total;
-  const top3Pct = values.slice(0, 3).reduce((s, n) => s + n, 0) / total;
-  const hhi = values.reduce((s, v) => s + (v / total) ** 2, 0);
+  entries.sort((a, b) => b.value - a.value);
+  const total = entries.reduce((s, e) => s + e.value, 0);
+  const top3 = entries.slice(0, 3);
+  const largestPct = entries[0].value / total;
+  const top3Pct = top3.reduce((s, e) => s + e.value, 0) / total;
+  const hhi = entries.reduce((s, e) => s + (e.value / total) ** 2, 0);
 
   return {
-    count: values.length,
+    count: entries.length,
     largestPct,
+    largestSymbol: entries[0].symbol,
     top3Pct,
+    top3Symbols: top3.map(e => e.symbol),
     hhi,
     hhiBand: bandForHhi(hhi),
   };

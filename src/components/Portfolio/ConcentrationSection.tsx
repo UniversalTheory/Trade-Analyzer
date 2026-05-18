@@ -50,11 +50,21 @@ export default function ConcentrationSection({ positions, priceBySymbol }: Props
         </div>
         <div className="concentration-stat">
           <div className="concentration-stat-label">Largest</div>
-          <div className="concentration-stat-value">{fmtPct(m.largestPct)}</div>
+          <div className="concentration-stat-value">
+            {fmtPct(m.largestPct)}
+            {m.largestSymbol && (
+              <span className="concentration-stat-meta"> ({m.largestSymbol})</span>
+            )}
+          </div>
         </div>
         <div className="concentration-stat">
           <div className="concentration-stat-label">Top 3 weight</div>
-          <div className="concentration-stat-value">{fmtPct(m.top3Pct)}</div>
+          <div className="concentration-stat-value">
+            {fmtPct(m.top3Pct)}
+            {m.top3Symbols.length > 0 && (
+              <span className="concentration-stat-meta"> ({m.top3Symbols.join(', ')})</span>
+            )}
+          </div>
         </div>
         <div className="concentration-stat" title="Herfindahl–Hirschman Index. <0.15 diversified, 0.15–0.25 moderate, >0.25 concentrated.">
           <div className="concentration-stat-label">HHI</div>
