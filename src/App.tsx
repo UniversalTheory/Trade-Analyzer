@@ -19,6 +19,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [calcPrefill, setCalcPrefill] = useState<CalcPrefill | null>(null);
+  const [researchPrefill, setResearchPrefill] = useState<string | null>(null);
 
   // Sliding tab indicator
   const navRef = useRef<HTMLElement>(null);
@@ -42,6 +43,12 @@ export default function App() {
   const handleAnalyzeInCalculator = useCallback((prefill: CalcPrefill) => {
     setCalcPrefill(prefill);
     setActiveTab('options');
+  }, []);
+
+  const handleShowInResearch = useCallback((symbol: string) => {
+    if (!symbol) return;
+    setResearchPrefill(symbol.toUpperCase());
+    setActiveTab('ticker');
   }, []);
 
   useRevealObserver(activeTab);
@@ -81,10 +88,18 @@ export default function App() {
       </header>
 
       <main className="main-content">
-        <div className={activeTab === 'home' ? '' : 'tab-hidden'}><MarketOverview /></div>
-        <div className={activeTab === 'sector' ? '' : 'tab-hidden'}><SectorResearch /></div>
+        <div className={activeTab === 'home' ? '' : 'tab-hidden'}>
+          <MarketOverview onShowInResearch={handleShowInResearch} />
+        </div>
+        <div className={activeTab === 'sector' ? '' : 'tab-hidden'}>
+          <SectorResearch onShowInResearch={handleShowInResearch} />
+        </div>
         <div className={activeTab === 'ticker' ? '' : 'tab-hidden'}>
-          <TickerResearch onAnalyzeInCalculator={handleAnalyzeInCalculator} />
+          <TickerResearch
+            onAnalyzeInCalculator={handleAnalyzeInCalculator}
+            prefillSymbol={researchPrefill}
+            onPrefillConsumed={() => setResearchPrefill(null)}
+          />
         </div>
         <div className={activeTab === 'options' ? '' : 'tab-hidden'}>
           <OptionsCalculator
@@ -92,7 +107,9 @@ export default function App() {
             onPrefillConsumed={() => setCalcPrefill(null)}
           />
         </div>
-        <div className={activeTab === 'portfolio' ? '' : 'tab-hidden'}><Portfolio /></div>
+        <div className={activeTab === 'portfolio' ? '' : 'tab-hidden'}>
+          <Portfolio onShowInResearch={handleShowInResearch} />
+        </div>
       </main>
     </>
   );

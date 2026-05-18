@@ -6,6 +6,7 @@ interface Props {
   sector: SectorDefinition;
   quote: QuoteData;
   history: PriceBar[];
+  onShowInResearch?: (symbol: string) => void;
 }
 
 function PerfBadge({ label, value }: { label: string; value: number | undefined }) {
@@ -37,7 +38,7 @@ function CustomTooltip({ active, payload, label }: any) {
 const HEX_GREEN = '#22c55e';
 const HEX_RED   = '#ef4444';
 
-export default function SectorOverview({ sector, quote, history }: Props) {
+export default function SectorOverview({ sector, quote, history, onShowInResearch }: Props) {
   const up = quote.changePercent >= 0;
   const color    = up ? 'var(--color-green)' : 'var(--color-red)';
   const hexColor = up ? HEX_GREEN : HEX_RED;
@@ -68,7 +69,18 @@ export default function SectorOverview({ sector, quote, history }: Props) {
         <div className="sector-overview-left">
           <div className="sector-overview-name">{sector.name}</div>
           <div className="sector-overview-etf">
-            <span className="etf-badge">{sector.etf}</span>
+            {onShowInResearch ? (
+              <button
+                type="button"
+                className="etf-badge clickable-asset-tag"
+                onClick={() => onShowInResearch(sector.etf)}
+                title={`Open ${sector.etf} in Research`}
+              >
+                {sector.etf}
+              </button>
+            ) : (
+              <span className="etf-badge">{sector.etf}</span>
+            )}
             <span className="sector-overview-desc">{sector.description}</span>
           </div>
         </div>
@@ -137,7 +149,19 @@ export default function SectorOverview({ sector, quote, history }: Props) {
       <div className="top-holdings">
         <span className="top-holdings-label">Top Holdings:</span>
         {sector.topHoldings.map(ticker => (
-          <span key={ticker} className="holding-tag">{ticker}</span>
+          onShowInResearch ? (
+            <button
+              key={ticker}
+              type="button"
+              className="holding-tag clickable-asset-tag"
+              onClick={() => onShowInResearch(ticker)}
+              title={`Open ${ticker} in Research`}
+            >
+              {ticker}
+            </button>
+          ) : (
+            <span key={ticker} className="holding-tag">{ticker}</span>
+          )
         ))}
       </div>
     </div>

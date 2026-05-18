@@ -5,6 +5,7 @@ import { AnimatedNumber } from '../AnimatedNumber';
 interface Props {
   quotes: QuoteData[];
   loading: boolean;
+  onShowInResearch?: (symbol: string) => void;
 }
 
 interface CommodityMeta {
@@ -26,7 +27,36 @@ function fmt(price: number): string {
   return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function CommoditiesPanel({ quotes, loading }: Props) {
+function CommodityRow({ q, onShowInResearch }: { q: QuoteData; onShowInResearch?: (s: string) => void }) {
+  const meta = COMMODITY_META[q.symbol];
+  const up = q.changePercent >= 0;
+  const color = up ? 'var(--color-green)' : 'var(--color-red)';
+  const clickable = !!onShowInResearch;
+  return (
+    <div
+      className={`global-table-row${clickable ? ' clickable-asset-row' : ''}`}
+      onClick={clickable ? () => onShowInResearch!(q.symbol) : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable
+        ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onShowInResearch!(q.symbol); } }
+        : undefined}
+    >
+      <div className="global-row-name">
+        <span className="global-row-label">{meta?.name ?? q.symbol}</span>
+        <span className="global-row-sub">{q.symbol} · {meta?.unit}</span>
+      </div>
+      <span className="global-row-price ta-right">
+        <AnimatedNumber value={q.price} format={fmt} prefix="$" />
+      </span>
+      <span className="global-row-change ta-right" style={{ color }}>
+        {up ? '+' : ''}{q.changePercent.toFixed(2)}%
+      </span>
+    </div>
+  );
+}
+
+export default function CommoditiesPanel({ quotes, loading, onShowInResearch }: Props) {
   const energy  = quotes.filter(q => COMMODITY_META[q.symbol]?.group === 'energy');
   const metals  = quotes.filter(q => COMMODITY_META[q.symbol]?.group === 'metals');
   const digital = quotes.filter(q => COMMODITY_META[q.symbol]?.group === 'digital');
@@ -49,67 +79,13 @@ export default function CommoditiesPanel({ quotes, loading }: Props) {
           </div>
 
           <div className="global-region-label">Energy</div>
-          {energy.map(q => {
-            const meta = COMMODITY_META[q.symbol];
-            const up = q.changePercent >= 0;
-            const color = up ? 'var(--color-green)' : 'var(--color-red)';
-            return (
-              <div key={q.symbol} className="global-table-row">
-                <div className="global-row-name">
-                  <span className="global-row-label">{meta?.name ?? q.symbol}</span>
-                  <span className="global-row-sub">{q.symbol} · {meta?.unit}</span>
-                </div>
-                <span className="global-row-price ta-right">
-                  <AnimatedNumber value={q.price} format={fmt} prefix="$" />
-                </span>
-                <span className="global-row-change ta-right" style={{ color }}>
-                  {up ? '+' : ''}{q.changePercent.toFixed(2)}%
-                </span>
-              </div>
-            );
-          })}
+          {energy.map(q => <CommodityRow key={q.symbol} q={q} onShowInResearch={onShowInResearch} />)}
 
           <div className="global-region-label global-region-label--gap">Metals</div>
-          {metals.map(q => {
-            const meta = COMMODITY_META[q.symbol];
-            const up = q.changePercent >= 0;
-            const color = up ? 'var(--color-green)' : 'var(--color-red)';
-            return (
-              <div key={q.symbol} className="global-table-row">
-                <div className="global-row-name">
-                  <span className="global-row-label">{meta?.name ?? q.symbol}</span>
-                  <span className="global-row-sub">{q.symbol} · {meta?.unit}</span>
-                </div>
-                <span className="global-row-price ta-right">
-                  <AnimatedNumber value={q.price} format={fmt} prefix="$" />
-                </span>
-                <span className="global-row-change ta-right" style={{ color }}>
-                  {up ? '+' : ''}{q.changePercent.toFixed(2)}%
-                </span>
-              </div>
-            );
-          })}
+          {metals.map(q => <CommodityRow key={q.symbol} q={q} onShowInResearch={onShowInResearch} />)}
 
           <div className="global-region-label global-region-label--gap">Digital Assets</div>
-          {digital.map(q => {
-            const meta = COMMODITY_META[q.symbol];
-            const up = q.changePercent >= 0;
-            const color = up ? 'var(--color-green)' : 'var(--color-red)';
-            return (
-              <div key={q.symbol} className="global-table-row">
-                <div className="global-row-name">
-                  <span className="global-row-label">{meta?.name ?? q.symbol}</span>
-                  <span className="global-row-sub">{q.symbol} · {meta?.unit}</span>
-                </div>
-                <span className="global-row-price ta-right">
-                  <AnimatedNumber value={q.price} format={fmt} prefix="$" />
-                </span>
-                <span className="global-row-change ta-right" style={{ color }}>
-                  {up ? '+' : ''}{q.changePercent.toFixed(2)}%
-                </span>
-              </div>
-            );
-          })}
+          {digital.map(q => <CommodityRow key={q.symbol} q={q} onShowInResearch={onShowInResearch} />)}
         </div>
       )}
     </div>

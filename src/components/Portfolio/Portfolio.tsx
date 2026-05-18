@@ -40,7 +40,11 @@ function fmtDateLong(iso: string): string {
   return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function Portfolio() {
+interface Props {
+  onShowInResearch?: (symbol: string) => void;
+}
+
+export default function Portfolio({ onShowInResearch }: Props) {
   const [state, setState] = useState<PortfolioState>(loadPortfolio);
   const [quotes, setQuotes] = useState<Record<string, QuoteData>>({});
   const [history, setHistory] = useState<Record<string, PriceBar[]>>({});
@@ -280,6 +284,7 @@ export default function Portfolio() {
           quotes={quotes}
           onRemove={handleRemove}
           onUpdate={handleUpdate}
+          onShowInResearch={onShowInResearch}
         />
 
         <div className="portfolio-cash-row">
@@ -410,6 +415,7 @@ export default function Portfolio() {
         onRiskLookbackChange={setRiskLookback}
         expanded={analysisExpanded}
         onToggleExpanded={() => setAnalysisExpanded(e => !e)}
+        onShowInResearch={onShowInResearch}
       />
     </div>
   );

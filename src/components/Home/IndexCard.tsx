@@ -6,6 +6,7 @@ interface Props {
   quote: QuoteData;
   history?: PriceBar[];
   isVix?: boolean;
+  onShowInResearch?: (symbol: string) => void;
 }
 
 function isUSMarketOpen(): boolean {
@@ -42,7 +43,7 @@ function vixLabel(price: number): { label: string; color: string } {
   return { label: 'High Fear', color: 'var(--color-red)' };
 }
 
-export default function IndexCard({ quote, history, isVix }: Props) {
+export default function IndexCard({ quote, history, isVix, onShowInResearch }: Props) {
   const up = quote.changePercent >= 0;
   const color = up ? 'var(--color-green)' : 'var(--color-red)';
 
@@ -52,8 +53,18 @@ export default function IndexCard({ quote, history, isVix }: Props) {
 
   const sparkData = history?.slice(-30).map(b => ({ v: b.close })) ?? [];
 
+  const clickable = !!onShowInResearch;
+
   return (
-    <div className={`index-card ${up ? 'up' : 'down'}`}>
+    <div
+      className={`index-card ${up ? 'up' : 'down'}${clickable ? ' clickable-asset-row' : ''}`}
+      onClick={clickable ? () => onShowInResearch!(quote.symbol) : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable
+        ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onShowInResearch!(quote.symbol); } }
+        : undefined}
+    >
       <div className="index-card-header">
         <div>
           <div className="index-card-name">{displayName}</div>

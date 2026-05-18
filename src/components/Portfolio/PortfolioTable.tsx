@@ -15,9 +15,10 @@ interface Props {
   quotes: Record<string, QuoteData>;
   onRemove: (id: string) => void;
   onUpdate: (id: string, patch: PositionEdit) => void;
+  onShowInResearch?: (symbol: string) => void;
 }
 
-export default function PortfolioTable({ positions, quotes, onRemove, onUpdate }: Props) {
+export default function PortfolioTable({ positions, quotes, onRemove, onUpdate, onShowInResearch }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   if (positions.length === 0) {
@@ -69,8 +70,18 @@ export default function PortfolioTable({ positions, quotes, onRemove, onUpdate }
           ? 'var(--text-muted)'
           : dayChangePct >= 0 ? 'var(--color-green)' : 'var(--color-red)';
 
+        const clickable = !!onShowInResearch;
         return (
-          <div key={p.id} className="portfolio-table-row">
+          <div
+            key={p.id}
+            className={`portfolio-table-row${clickable ? ' clickable-asset-row' : ''}`}
+            onClick={clickable ? () => onShowInResearch!(p.symbol) : undefined}
+            role={clickable ? 'button' : undefined}
+            tabIndex={clickable ? 0 : undefined}
+            onKeyDown={clickable
+              ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onShowInResearch!(p.symbol); } }
+              : undefined}
+          >
             <div className="global-row-name">
               <span className="global-row-label">{p.symbol}</span>
               {quote?.name && <span className="global-row-sub">{quote.name}</span>}
@@ -105,7 +116,7 @@ export default function PortfolioTable({ positions, quotes, onRemove, onUpdate }
               {metrics ? `${signed(metrics.pl)}${fmtPct(metrics.plPct)}` : '—'}
             </span>
 
-            <div className="portfolio-row-actions">
+            <div className="portfolio-row-actions" onClick={e => e.stopPropagation()}>
               <button
                 className="portfolio-edit-btn"
                 onClick={() => setEditingId(p.id)}

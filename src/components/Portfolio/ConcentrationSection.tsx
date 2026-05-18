@@ -6,6 +6,7 @@ import { fmtPct } from '../../utils/portfolioCalc';
 interface Props {
   positions: PortfolioPosition[];
   priceBySymbol: Record<string, number | undefined>;
+  onShowInResearch?: (symbol: string) => void;
 }
 
 const BAND_COLOR: Record<HhiBand, string> = {
@@ -14,7 +15,7 @@ const BAND_COLOR: Record<HhiBand, string> = {
   Concentrated: 'var(--color-red)',
 };
 
-export default function ConcentrationSection({ positions, priceBySymbol }: Props) {
+export default function ConcentrationSection({ positions, priceBySymbol, onShowInResearch }: Props) {
   const m = useMemo(
     () => computeConcentration(positions, priceBySymbol),
     [positions, priceBySymbol],
@@ -53,7 +54,20 @@ export default function ConcentrationSection({ positions, priceBySymbol }: Props
           <div className="concentration-stat-value">
             {fmtPct(m.largestPct)}
             {m.largestSymbol && (
-              <span className="concentration-stat-meta"> ({m.largestSymbol})</span>
+              <span className="concentration-stat-meta">
+                {' ('}
+                {onShowInResearch ? (
+                  <button
+                    type="button"
+                    className="concentration-ticker-link"
+                    onClick={() => onShowInResearch(m.largestSymbol!)}
+                    title={`Open ${m.largestSymbol} in Research`}
+                  >
+                    {m.largestSymbol}
+                  </button>
+                ) : m.largestSymbol}
+                {')'}
+              </span>
             )}
           </div>
         </div>
@@ -62,7 +76,25 @@ export default function ConcentrationSection({ positions, priceBySymbol }: Props
           <div className="concentration-stat-value">
             {fmtPct(m.top3Pct)}
             {m.top3Symbols.length > 0 && (
-              <span className="concentration-stat-meta"> ({m.top3Symbols.join(', ')})</span>
+              <span className="concentration-stat-meta">
+                {' ('}
+                {m.top3Symbols.map((sym, i) => (
+                  <span key={sym}>
+                    {i > 0 && ', '}
+                    {onShowInResearch ? (
+                      <button
+                        type="button"
+                        className="concentration-ticker-link"
+                        onClick={() => onShowInResearch(sym)}
+                        title={`Open ${sym} in Research`}
+                      >
+                        {sym}
+                      </button>
+                    ) : sym}
+                  </span>
+                ))}
+                {')'}
+              </span>
             )}
           </div>
         </div>

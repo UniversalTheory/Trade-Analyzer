@@ -7,6 +7,7 @@ const STORAGE_KEY = 'watchlist_symbols';
 
 interface Props {
   refreshKey: number;
+  onShowInResearch?: (symbol: string) => void;
 }
 
 function loadSymbols(): string[] {
@@ -25,7 +26,7 @@ function fmt(price: number): string {
   return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function WatchlistPanel({ refreshKey }: Props) {
+export default function WatchlistPanel({ refreshKey, onShowInResearch }: Props) {
   const [symbols, setSymbols] = useState<string[]>(loadSymbols);
   const [quotes, setQuotes] = useState<Record<string, QuoteData>>({});
   const [loading, setLoading] = useState(false);
@@ -138,8 +139,18 @@ export default function WatchlistPanel({ refreshKey }: Props) {
             const color = up === null
               ? 'var(--text-muted)'
               : up ? 'var(--color-green)' : 'var(--color-red)';
+            const clickable = !!onShowInResearch;
             return (
-              <div key={sym} className="watchlist-table-row">
+              <div
+                key={sym}
+                className={`watchlist-table-row${clickable ? ' clickable-asset-row' : ''}`}
+                onClick={clickable ? () => onShowInResearch!(sym) : undefined}
+                role={clickable ? 'button' : undefined}
+                tabIndex={clickable ? 0 : undefined}
+                onKeyDown={clickable
+                  ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onShowInResearch!(sym); } }
+                  : undefined}
+              >
                 <div className="global-row-name">
                   <span className="global-row-label">{sym}</span>
                   {q?.name && <span className="global-row-sub">{q.name}</span>}
@@ -161,7 +172,7 @@ export default function WatchlistPanel({ refreshKey }: Props) {
                 </span>
                 <button
                   className="watchlist-remove-btn"
-                  onClick={() => handleRemove(sym)}
+                  onClick={e => { e.stopPropagation(); handleRemove(sym); }}
                   title="Remove from watchlist"
                 >
                   ×

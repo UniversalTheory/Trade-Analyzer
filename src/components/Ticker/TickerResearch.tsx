@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ticker as tickerApi } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { PriceBar, QuoteData, OptionContract, OptionsChainData, AssetProfile, FundamentalsData, FilingsData, EarningsData } from '../../api/types';
@@ -22,12 +22,22 @@ export interface CalcPrefill {
 
 interface Props {
   onAnalyzeInCalculator: (prefill: CalcPrefill) => void;
+  prefillSymbol?: string | null;
+  onPrefillConsumed?: () => void;
 }
 
-export default function TickerResearch({ onAnalyzeInCalculator }: Props) {
+export default function TickerResearch({ onAnalyzeInCalculator, prefillSymbol, onPrefillConsumed }: Props) {
   const [symbol, setSymbol] = useState('');
   const [interval, setInterval] = useState<Interval>('1d');
   const [range, setRange] = useState<Range>('3m');
+
+  useEffect(() => {
+    if (!prefillSymbol) return;
+    setSymbol(prefillSymbol);
+    setInterval('1d');
+    setRange('3m');
+    onPrefillConsumed?.();
+  }, [prefillSymbol, onPrefillConsumed]);
 
   const {
     data: quote,

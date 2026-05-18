@@ -23,6 +23,7 @@ interface Props {
   onRiskLookbackChange: (next: LookbackId) => void;
   expanded: boolean;
   onToggleExpanded: () => void;
+  onShowInResearch?: (symbol: string) => void;
 }
 
 export default function AnalysisCard(props: Props) {
@@ -67,6 +68,7 @@ export default function AnalysisCard(props: Props) {
           <ConcentrationSection
             positions={props.positions}
             priceBySymbol={props.priceBySymbol}
+            onShowInResearch={props.onShowInResearch}
           />
           <RiskSection
             positions={props.positions}

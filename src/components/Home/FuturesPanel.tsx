@@ -5,6 +5,7 @@ import { AnimatedNumber } from '../AnimatedNumber';
 interface Props {
   quotes: QuoteData[];
   loading: boolean;
+  onShowInResearch?: (symbol: string) => void;
 }
 
 const FUTURES_META: Record<string, { name: string; short: string }> = {
@@ -26,12 +27,21 @@ function fmt(price: number): string {
   return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function FutureRow({ q }: { q: QuoteData }) {
+function FutureRow({ q, onShowInResearch }: { q: QuoteData; onShowInResearch?: (s: string) => void }) {
   const meta = FUTURES_META[q.symbol];
   const up = q.changePercent >= 0;
   const color = up ? 'var(--color-green)' : 'var(--color-red)';
+  const clickable = !!onShowInResearch;
   return (
-    <div className="global-table-row">
+    <div
+      className={`global-table-row${clickable ? ' clickable-asset-row' : ''}`}
+      onClick={clickable ? () => onShowInResearch!(q.symbol) : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable
+        ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onShowInResearch!(q.symbol); } }
+        : undefined}
+    >
       <div className="global-row-name">
         <span className="global-row-label">{meta?.name ?? q.symbol}</span>
         <span className="global-row-sub">{meta?.short ?? q.symbol}</span>
@@ -46,14 +56,23 @@ function FutureRow({ q }: { q: QuoteData }) {
   );
 }
 
-function YieldRow({ q }: { q: QuoteData }) {
+function YieldRow({ q, onShowInResearch }: { q: QuoteData; onShowInResearch?: (s: string) => void }) {
   const meta = YIELD_META[q.symbol];
   // For yields, change field = change in yield (e.g. +0.05 = +5 bps)
   const bps = Math.round(q.change * 100);
   const up = q.change >= 0;
   const color = up ? 'var(--color-red)' : 'var(--color-green)'; // rising yields = bearish for bonds
+  const clickable = !!onShowInResearch;
   return (
-    <div className="global-table-row">
+    <div
+      className={`global-table-row${clickable ? ' clickable-asset-row' : ''}`}
+      onClick={clickable ? () => onShowInResearch!(q.symbol) : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable
+        ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onShowInResearch!(q.symbol); } }
+        : undefined}
+    >
       <div className="global-row-name">
         <span className="global-row-label">{meta?.name ?? q.symbol}</span>
         <span className="global-row-sub">{meta?.short ?? q.symbol}</span>
@@ -68,7 +87,7 @@ function YieldRow({ q }: { q: QuoteData }) {
   );
 }
 
-export default function FuturesPanel({ quotes, loading }: Props) {
+export default function FuturesPanel({ quotes, loading, onShowInResearch }: Props) {
   const bySymbol = Object.fromEntries(quotes.map(q => [q.symbol, q]));
   const futures = FUTURES_ORDER.map(s => bySymbol[s]).filter(Boolean);
   const yields  = YIELD_ORDER.map(s => bySymbol[s]).filter(Boolean);
@@ -91,10 +110,10 @@ export default function FuturesPanel({ quotes, loading }: Props) {
           </div>
 
           <div className="global-region-label">Equity Futures</div>
-          {futures.map(q => <FutureRow key={q.symbol} q={q} />)}
+          {futures.map(q => <FutureRow key={q.symbol} q={q} onShowInResearch={onShowInResearch} />)}
 
           <div className="global-region-label global-region-label--gap">Treasury Yields</div>
-          {yields.map(q => <YieldRow key={q.symbol} q={q} />)}
+          {yields.map(q => <YieldRow key={q.symbol} q={q} onShowInResearch={onShowInResearch} />)}
         </div>
       )}
     </div>

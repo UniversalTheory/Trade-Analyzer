@@ -5833,3 +5833,62 @@ body {
   color: var(--accent-blue);
   background: rgba(59, 130, 246, 0.06);
 }
+
+/* ── Click-to-Research: asset rows ─────────────────────────────────────── */
+/* Applied to rows/cards across Market, Sector, and Portfolio tabs that can
+   navigate to the Research tab with the asset's symbol prefilled. */
+.clickable-asset-row {
+  cursor: pointer;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+.clickable-asset-row:hover {
+  background: rgba(59, 130, 246, 0.06);
+}
+.clickable-asset-row:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+/* Index cards already have their own hover treatment; add a subtle blue lift */
+.index-card.clickable-asset-row:hover {
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4);
+}
+
+/* ── Click-to-Research: small ticker tags/badges ───────────────────────── */
+/* Reset the <button> shell so it visually matches the surrounding text/tag,
+   but gain pointer + hover affordance. */
+.clickable-asset-tag {
+  font: inherit;
+  cursor: pointer;
+  transition: filter 0.12s, background 0.12s, border-color 0.12s, color 0.12s;
+}
+.etf-badge.clickable-asset-tag,
+.holding-tag.clickable-asset-tag {
+  /* Keep visual treatment from the parent class — button is just for behavior */
+  display: inline-flex;
+  align-items: center;
+}
+.etf-badge.clickable-asset-tag:hover {
+  background: rgba(59, 130, 246, 0.22);
+}
+.holding-tag.clickable-asset-tag:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+/* Inline ticker links inside the Portfolio Concentration meta text */
+.concentration-ticker-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted rgba(255, 255, 255, 0.2);
+  text-underline-offset: 2px;
+  transition: color 0.12s, text-decoration-color 0.12s;
+}
+.concentration-ticker-link:hover {
+  color: var(--accent-blue);
+  text-decoration-color: var(--accent-blue);
+}

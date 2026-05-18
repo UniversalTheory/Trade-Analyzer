@@ -14,7 +14,11 @@ import ErrorState from '../common/ErrorState';
 
 const DEFAULT_SECTOR = 'technology';
 
-export default function SectorResearch() {
+interface Props {
+  onShowInResearch?: (symbol: string) => void;
+}
+
+export default function SectorResearch({ onShowInResearch }: Props) {
   const [selectedId, setSelectedId] = useState(DEFAULT_SECTOR);
 
   // Load sector definitions once
@@ -103,7 +107,7 @@ export default function SectorResearch() {
             {isLoading && !quote ? (
               <div className="panel-card"><LoadingState rows={5} height={28} /></div>
             ) : quote && history ? (
-              <SectorOverview sector={selectedSector} quote={quote} history={history} />
+              <SectorOverview sector={selectedSector} quote={quote} history={history} onShowInResearch={onShowInResearch} />
             ) : null}
 
             {isLoading && !score ? (
@@ -115,7 +119,7 @@ export default function SectorResearch() {
             {moversLoading && !movers ? (
               <div className="panel-card"><LoadingState rows={6} height={36} /></div>
             ) : (
-              <TopMovers data={movers ?? { gainers: [], losers: [] }} />
+              <TopMovers data={movers ?? { gainers: [], losers: [] }} onShowInResearch={onShowInResearch} />
             )}
           </div>
 

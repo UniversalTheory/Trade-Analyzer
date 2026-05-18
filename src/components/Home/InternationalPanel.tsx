@@ -5,6 +5,7 @@ import { AnimatedNumber } from '../AnimatedNumber';
 interface Props {
   quotes: QuoteData[];
   loading: boolean;
+  onShowInResearch?: (symbol: string) => void;
 }
 
 interface ExchangeMeta {
@@ -64,15 +65,24 @@ function fmt(price: number): string {
   return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function IndexRow({ q }: { q: QuoteData }) {
+function IndexRow({ q, onShowInResearch }: { q: QuoteData; onShowInResearch?: (s: string) => void }) {
   const meta = EXCHANGE_META[q.symbol];
   if (!meta) return null;
   const { open, localTime } = getMarketStatus(meta);
   const up = q.changePercent >= 0;
   const color = up ? 'var(--color-green)' : 'var(--color-red)';
+  const clickable = !!onShowInResearch;
 
   return (
-    <div className="global-table-row">
+    <div
+      className={`global-table-row${clickable ? ' clickable-asset-row' : ''}`}
+      onClick={clickable ? () => onShowInResearch!(q.symbol) : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable
+        ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onShowInResearch!(q.symbol); } }
+        : undefined}
+    >
       <div className="global-row-name">
         <span className="global-row-label">{meta.name}</span>
         <span className="global-row-sub">
@@ -90,7 +100,7 @@ function IndexRow({ q }: { q: QuoteData }) {
   );
 }
 
-export default function InternationalPanel({ quotes, loading }: Props) {
+export default function InternationalPanel({ quotes, loading, onShowInResearch }: Props) {
   const europe = quotes.filter(q => EXCHANGE_META[q.symbol]?.region === 'europe');
   const asia   = quotes.filter(q => EXCHANGE_META[q.symbol]?.region === 'asia');
 
@@ -112,10 +122,10 @@ export default function InternationalPanel({ quotes, loading }: Props) {
           </div>
 
           <div className="global-region-label">Europe</div>
-          {europe.map(q => <IndexRow key={q.symbol} q={q} />)}
+          {europe.map(q => <IndexRow key={q.symbol} q={q} onShowInResearch={onShowInResearch} />)}
 
           <div className="global-region-label global-region-label--gap">Asia-Pacific</div>
-          {asia.map(q => <IndexRow key={q.symbol} q={q} />)}
+          {asia.map(q => <IndexRow key={q.symbol} q={q} onShowInResearch={onShowInResearch} />)}
         </div>
       )}
     </div>

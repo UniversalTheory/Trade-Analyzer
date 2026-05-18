@@ -8,9 +8,10 @@ import CommoditiesPanel from './CommoditiesPanel';
 interface Props {
   refreshKey: number;
   live: boolean;
+  onShowInResearch?: (symbol: string) => void;
 }
 
-export default function GlobalMarketsRow({ refreshKey, live }: Props) {
+export default function GlobalMarketsRow({ refreshKey, live, onShowInResearch }: Props) {
   const futures = useApi<QuoteData[]>(
     () => market.getFutures(live),
     [refreshKey, live],
@@ -31,14 +32,17 @@ export default function GlobalMarketsRow({ refreshKey, live }: Props) {
       <FuturesPanel
         quotes={futures.data ?? []}
         loading={futures.loading}
+        onShowInResearch={onShowInResearch}
       />
       <InternationalPanel
         quotes={international.data ?? []}
         loading={international.loading}
+        onShowInResearch={onShowInResearch}
       />
       <CommoditiesPanel
         quotes={commodities.data ?? []}
         loading={commodities.loading}
+        onShowInResearch={onShowInResearch}
       />
     </div>
   );

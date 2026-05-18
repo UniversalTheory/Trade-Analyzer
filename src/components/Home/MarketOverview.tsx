@@ -22,7 +22,11 @@ function LastUpdated({ time }: { time: Date | null }) {
   );
 }
 
-export default function MarketOverview() {
+interface Props {
+  onShowInResearch?: (symbol: string) => void;
+}
+
+export default function MarketOverview({ onShowInResearch }: Props) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [live, setLive] = useState(false);
@@ -117,16 +121,17 @@ export default function MarketOverview() {
                 key={quote.symbol}
                 quote={quote}
                 isVix={quote.symbol === '^VIX'}
+                onShowInResearch={onShowInResearch}
               />
             ))
         }
       </div>
 
       {/* Global Markets Row: Futures | International | Commodities */}
-      <GlobalMarketsRow refreshKey={refreshKey} live={live} />
+      <GlobalMarketsRow refreshKey={refreshKey} live={live} onShowInResearch={onShowInResearch} />
 
       {/* Watchlist */}
-      <WatchlistPanel refreshKey={refreshKey} />
+      <WatchlistPanel refreshKey={refreshKey} onShowInResearch={onShowInResearch} />
 
       {/* Market Conditions: VIX | Tone | Sectors | News */}
       <div className="dashboard-row">
