@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { AnimatedNumber } from '../AnimatedNumber';
+import EditPositionRow, { type PositionEdit } from './EditPositionRow';
 import type { PortfolioPosition } from '../../utils/portfolioStorage';
 import type { QuoteData } from '../../api/types';
 import {
@@ -12,9 +14,12 @@ interface Props {
   positions: PortfolioPosition[];
   quotes: Record<string, QuoteData>;
   onRemove: (id: string) => void;
+  onUpdate: (id: string, patch: PositionEdit) => void;
 }
 
-export default function PortfolioTable({ positions, quotes, onRemove }: Props) {
+export default function PortfolioTable({ positions, quotes, onRemove, onUpdate }: Props) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   if (positions.length === 0) {
     return (
       <div className="portfolio-empty">
@@ -23,12 +28,17 @@ export default function PortfolioTable({ positions, quotes, onRemove }: Props) {
     );
   }
 
+  function handleSave(id: string, patch: PositionEdit) {
+    onUpdate(id, patch);
+    setEditingId(null);
+  }
+
   return (
     <div className="global-table portfolio-table">
       <div className="portfolio-table-head">
         <span>Ticker</span>
         <span className="ta-right">Shares</span>
-        <span className="ta-right">Purchase $</span>
+        <span className="ta-right">Trade $</span>
         <span className="ta-right">Current $</span>
         <span className="ta-right">P/L $</span>
         <span className="ta-right">P/L %</span>
@@ -36,6 +46,17 @@ export default function PortfolioTable({ positions, quotes, onRemove }: Props) {
       </div>
 
       {positions.map(p => {
+        if (editingId === p.id && p.type === 'stock') {
+          return (
+            <EditPositionRow
+              key={p.id}
+              position={p}
+              onSave={handleSave}
+              onCancel={() => setEditingId(null)}
+            />
+          );
+        }
+
         const quote = quotes[p.symbol];
         const currentPrice = quote?.price;
         const metrics = computePositionMetrics(p, currentPrice);
@@ -70,13 +91,22 @@ export default function PortfolioTable({ positions, quotes, onRemove }: Props) {
               {metrics ? `${signed(metrics.pl)}${fmtPct(metrics.plPct)}` : '—'}
             </span>
 
-            <button
-              className="portfolio-remove-btn"
-              onClick={() => onRemove(p.id)}
-              title="Remove position"
-            >
-              ×
-            </button>
+            <div className="portfolio-row-actions">
+              <button
+                className="portfolio-edit-btn"
+                onClick={() => setEditingId(p.id)}
+                title="Edit position"
+              >
+                ✎
+              </button>
+              <button
+                className="portfolio-remove-btn"
+                onClick={() => onRemove(p.id)}
+                title="Remove position"
+              >
+                ×
+              </button>
+            </div>
           </div>
         );
       })}

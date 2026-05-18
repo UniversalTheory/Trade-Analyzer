@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AddPositionForm from './AddPositionForm';
 import PortfolioTable from './PortfolioTable';
+import type { PositionEdit } from './EditPositionRow';
 import AnalysisCard from './AnalysisCard';
 import { AnimatedNumber } from '../AnimatedNumber';
 import { ticker } from '../../api/client';
@@ -171,6 +172,17 @@ export default function Portfolio() {
     setQuotes(prev => ({ ...prev, [position.symbol]: initialQuote }));
   }
 
+  function handleUpdate(id: string, patch: PositionEdit) {
+    setState(s => ({
+      ...s,
+      positions: s.positions.map(p =>
+        p.id === id && p.type === 'stock'
+          ? { ...p, shares: patch.shares, avgPrice: patch.avgPrice, addedAt: patch.addedAt }
+          : p,
+      ),
+    }));
+  }
+
   function handleRemove(id: string) {
     setState(s => {
       const removed = s.positions.find(p => p.id === id);
@@ -267,6 +279,7 @@ export default function Portfolio() {
           positions={state.positions}
           quotes={quotes}
           onRemove={handleRemove}
+          onUpdate={handleUpdate}
         />
 
         <div className="portfolio-cash-row">

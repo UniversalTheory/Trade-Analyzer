@@ -38,7 +38,7 @@ export default function AddPositionForm({ existingSymbols, onAdd }: Props) {
 
     if (!sym) { setError('Enter a symbol'); return; }
     if (!isFinite(sharesNum) || sharesNum <= 0) { setError('Shares must be > 0'); return; }
-    if (!isFinite(priceNum) || priceNum <= 0) { setError('Purchase price must be > 0'); return; }
+    if (!isFinite(priceNum) || priceNum <= 0) { setError('Trade price must be > 0'); return; }
     if (existingSymbols.includes(sym)) { setError(`${sym} already in portfolio`); return; }
 
     setSubmitting(true);
@@ -90,7 +90,7 @@ export default function AddPositionForm({ existingSymbols, onAdd }: Props) {
         value={avgPrice}
         onChange={e => { setAvgPrice(e.target.value); setError(null); }}
         onKeyDown={handleKey}
-        placeholder="Purchase $"
+        placeholder="Trade $"
         disabled={submitting}
       />
       <div

@@ -1295,7 +1295,7 @@ body {
 
 .watchlist-table-head {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 24px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 56px;
   gap: 12px;
   padding: 0 4px 6px;
   border-bottom: 1px solid var(--border-primary);
@@ -1309,7 +1309,7 @@ body {
 
 .watchlist-table-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 24px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 56px;
   gap: 12px;
   align-items: center;
   padding: 5px 4px;
@@ -1515,7 +1515,7 @@ body {
 .portfolio-table-head,
 .portfolio-table-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 24px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 56px;
   gap: 12px;
   align-items: center;
 }
@@ -1561,6 +1561,126 @@ body {
 .portfolio-remove-btn:hover {
   color: var(--color-red);
   background: rgba(239, 68, 68, 0.1);
+}
+
+.portfolio-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.portfolio-edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.portfolio-edit-btn:hover {
+  color: var(--color-blue);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+/* ── Edit row (inline edit form) ── */
+.portfolio-edit-row {
+  background: rgba(59, 130, 246, 0.06);
+  box-shadow: inset 2px 0 0 var(--color-blue);
+  position: relative;
+}
+
+.portfolio-edit-row:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.portfolio-edit-input {
+  width: 100%;
+  text-align: right;
+  padding: 5px 8px;
+}
+
+.portfolio-edit-date-wrap {
+  grid-column: 4 / 7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.portfolio-edit-date-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.portfolio-edit-date-input {
+  width: 140px;
+  color-scheme: dark;
+}
+
+.portfolio-edit-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
+
+.portfolio-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.portfolio-edit-save-btn,
+.portfolio-edit-cancel-btn {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.portfolio-edit-save-btn {
+  color: var(--color-green);
+}
+
+.portfolio-edit-save-btn:hover {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.portfolio-edit-cancel-btn {
+  color: var(--text-muted);
+}
+
+.portfolio-edit-cancel-btn:hover {
+  color: var(--color-red);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.portfolio-edit-error {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--color-red);
+  text-align: right;
 }
 
 /* ── Cash row ── */
