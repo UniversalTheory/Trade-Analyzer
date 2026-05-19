@@ -4,11 +4,13 @@ import MarketOverview from './components/Home/MarketOverview';
 import SectorResearch from './components/Sector/SectorResearch';
 import TickerResearch, { type CalcPrefill } from './components/Ticker/TickerResearch';
 import Portfolio from './components/Portfolio/Portfolio';
+import DailyBriefing from './components/DailyBriefing/DailyBriefing';
 import { useRevealObserver } from './hooks/useRevealObserver';
 
-type Tab = 'home' | 'sector' | 'ticker' | 'options' | 'portfolio';
+type Tab = 'briefing' | 'home' | 'sector' | 'ticker' | 'options' | 'portfolio';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: 'briefing',  label: 'Briefing',  icon: '✦' },
   { id: 'home',      label: 'Market',    icon: '◈' },
   { id: 'sector',    label: 'Sectors',   icon: '⬡' },
   { id: 'ticker',    label: 'Research',  icon: '⌕' },
@@ -17,7 +19,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [activeTab, setActiveTab] = useState<Tab>('briefing');
   const [calcPrefill, setCalcPrefill] = useState<CalcPrefill | null>(null);
   const [researchPrefill, setResearchPrefill] = useState<string | null>(null);
 
@@ -88,6 +90,9 @@ export default function App() {
       </header>
 
       <main className="main-content">
+        <div className={activeTab === 'briefing' ? '' : 'tab-hidden'}>
+          <DailyBriefing onShowInResearch={handleShowInResearch} />
+        </div>
         <div className={activeTab === 'home' ? '' : 'tab-hidden'}>
           <MarketOverview onShowInResearch={handleShowInResearch} />
         </div>
