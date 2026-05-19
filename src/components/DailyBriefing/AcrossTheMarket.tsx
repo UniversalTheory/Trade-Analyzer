@@ -83,7 +83,7 @@ export default function AcrossTheMarket({ refreshKey, onShowInResearch }: Props)
   return (
     <section className="panel-card briefing-section">
       <div className="briefing-section-header">
-        <h3 className="briefing-section-title">Across the Market</h3>
+        <h3 className="briefing-section-title">Unusual Market Activity</h3>
         <span className="briefing-mini-meta">Unusual volume · ≥{UNUSUAL_RATIO.toFixed(1)}× average</span>
       </div>
 

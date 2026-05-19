@@ -6412,10 +6412,123 @@ body {
   text-align: right;
 }
 
+/* ── Portfolio & Sector News feed ── */
+.briefing-portfolio-news {
+  min-width: 0;
+}
+
+.briefing-news-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.briefing-news-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.briefing-news-row:last-child {
+  border-bottom: none;
+}
+
+.briefing-news-row-compact {
+  padding: 7px 0;
+}
+
+.briefing-news-tag {
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+  margin-top: 1px;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.briefing-news-tag-ticker {
+  color: var(--text-primary);
+}
+
+.briefing-news-tag-sector {
+  color: var(--text-muted);
+  border-style: dashed;
+}
+
+.briefing-news-tag.clickable {
+  cursor: pointer;
+}
+
+.briefing-news-tag.clickable:hover {
+  color: var(--accent-blue);
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.briefing-news-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.briefing-news-headline {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  line-height: 1.4;
+  transition: color 0.12s;
+}
+
+.briefing-news-headline:hover {
+  color: var(--accent-blue);
+  text-decoration: underline;
+}
+
+.briefing-news-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Earnings section (moved to full-width below the 2-col grid) ── */
+.briefing-portfolio-earnings {
+  margin-top: 4px;
+}
+
+.briefing-earnings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 16px;
+}
+
+/* ── What to Watch 2-col layout ── */
+.briefing-watch-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.briefing-watch-col {
+  min-width: 0;
+}
+
 /* Responsive — collapse 2-col grids on narrower viewports */
 @media (max-width: 900px) {
   .briefing-sector-rows,
-  .briefing-portfolio-grid {
+  .briefing-portfolio-grid,
+  .briefing-watch-grid {
     grid-template-columns: 1fr;
     gap: 16px;
   }
@@ -6425,5 +6538,8 @@ body {
   }
   .briefing-mover-news {
     margin-left: 0;
+  }
+  .briefing-earnings-grid {
+    grid-template-columns: 1fr;
   }
 }

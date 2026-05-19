@@ -5,6 +5,7 @@ import type { PortfolioPosition } from '../../utils/portfolioStorage';
 import type { QuoteData, EarningsData, NewsItem } from '../../api/types';
 import { computePortfolioDayTotals, fmtUSD, fmtPct, signed } from '../../utils/portfolioCalc';
 import LoadingState from '../common/LoadingState';
+import PortfolioNewsFeed from './PortfolioNewsFeed';
 
 interface Props {
   refreshKey: number;
@@ -261,17 +262,26 @@ export default function YourPortfolioToday({ refreshKey, onShowInResearch }: Pro
               ))}
             </div>
 
-            <div>
-              <div className="briefing-mini-heading">
-                Upcoming earnings <span className="briefing-mini-meta">· next {EARNINGS_WINDOW_DAYS}d</span>
-              </div>
-              {upcoming.length === 0 && (
-                <div className="briefing-empty-line">No earnings in your portfolio this window.</div>
-              )}
-              {upcoming.map(u => (
-                <EarningsRow key={u.symbol} item={u} onShowInResearch={onShowInResearch} />
-              ))}
+            <PortfolioNewsFeed
+              positions={positions}
+              refreshKey={refreshKey}
+              onShowInResearch={onShowInResearch}
+            />
+          </div>
+
+          <div className="briefing-portfolio-earnings">
+            <div className="briefing-mini-heading">
+              Upcoming earnings <span className="briefing-mini-meta">· next {EARNINGS_WINDOW_DAYS}d</span>
             </div>
+            {upcoming.length === 0 ? (
+              <div className="briefing-empty-line">No earnings in your portfolio this window.</div>
+            ) : (
+              <div className="briefing-earnings-grid">
+                {upcoming.map(u => (
+                  <EarningsRow key={u.symbol} item={u} onShowInResearch={onShowInResearch} />
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
