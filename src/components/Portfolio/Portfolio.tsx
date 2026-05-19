@@ -14,6 +14,7 @@ import {
 } from '../../utils/portfolioStorage';
 import {
   computePortfolioTotals,
+  computePortfolioDayTotals,
   computePortfolioPeriodTotals,
   fmtUSD,
   fmtPct,
@@ -231,8 +232,10 @@ export default function Portfolio({ onShowInResearch }: Props) {
     priceBySymbol[p.symbol] = quotes[p.symbol]?.price;
   }
   const totals = computePortfolioTotals(state.positions, priceBySymbol, state.cash);
+  const dayTotals = computePortfolioDayTotals(state.positions, quotes);
 
   const plColor = totals.totalPL >= 0 ? 'var(--color-green)' : 'var(--color-red)';
+  const dayColor = dayTotals.pl >= 0 ? 'var(--color-green)' : 'var(--color-red)';
 
   const periodTotals = useMemo(() => {
     if (!state.selectedDate) return null;
@@ -327,6 +330,17 @@ export default function Portfolio({ onShowInResearch }: Props) {
           <div className="portfolio-totals-row">
             <span className="portfolio-totals-label">Cost basis</span>
             <span className="portfolio-totals-value">${fmtUSD(totals.totalCostBasis)}</span>
+          </div>
+          <div className="portfolio-totals-row">
+            <span className="portfolio-totals-label">Day P/L</span>
+            <span className="portfolio-totals-value" style={{ color: dayColor }}>
+              {dayTotals.pricedCount > 0 && dayTotals.previousValue > 0 ? (
+                <>
+                  {signed(dayTotals.pl)}$<AnimatedNumber value={Math.abs(dayTotals.pl)} format={fmtUSD} />
+                  {' '}({signed(dayTotals.pl)}{fmtPct(dayTotals.plPct)})
+                </>
+              ) : '—'}
+            </span>
           </div>
           <div className="portfolio-totals-row">
             <span className="portfolio-totals-label">Total P/L</span>

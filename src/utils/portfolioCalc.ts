@@ -62,6 +62,37 @@ export function computePortfolioTotals(
   };
 }
 
+// ── Daily P/L (current session vs. previous close) ───────────────────────
+
+export interface PortfolioDayTotals {
+  pl: number;            // sum of shares * (price - previousClose)
+  plPct: number;         // pl / previousValue
+  previousValue: number; // sum of shares * previousClose
+  pricedCount: number;   // positions that had both price and previousClose
+}
+
+export function computePortfolioDayTotals(
+  positions: PortfolioPosition[],
+  quoteBySymbol: Record<string, { price?: number; previousClose?: number } | undefined>,
+): PortfolioDayTotals {
+  let pl = 0;
+  let previousValue = 0;
+  let pricedCount = 0;
+
+  for (const p of positions) {
+    const q = quoteBySymbol[p.symbol];
+    const price = q?.price;
+    const prev = q?.previousClose;
+    if (price === undefined || prev === undefined || !isFinite(price) || !isFinite(prev) || prev <= 0) continue;
+    pl += p.shares * (price - prev);
+    previousValue += p.shares * prev;
+    pricedCount += 1;
+  }
+
+  const plPct = previousValue > 0 ? pl / previousValue : 0;
+  return { pl, plPct, previousValue, pricedCount };
+}
+
 // ── Period (date-based) P/L ──────────────────────────────────────────────
 
 export interface PositionPeriodMetrics {
