@@ -8,6 +8,7 @@ import type {
   OptionsChainData,
   SymbolSearchResult,
 } from './types.js';
+import { scoreLexicon } from './newsSentiment.js';
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 
@@ -91,6 +92,7 @@ export class FinnhubProvider implements MarketDataProvider {
       datetime: item.datetime || Date.now() / 1000,
       category: item.category,
       related: item.related,
+      sentiment: scoreLexicon(`${item.headline ?? ''} ${item.summary ?? ''}`),
     }));
   }
 

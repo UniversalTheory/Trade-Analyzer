@@ -1,9 +1,28 @@
-import type { PriceBar, QuoteData, FundamentalsData, OptionsChainData } from '../api/types';
+import type {
+  PriceBar,
+  QuoteData,
+  FundamentalsData,
+  OptionsChainData,
+  DeepFundamentals,
+  MarketContext,
+  EarningsData,
+} from '../api/types';
 import { calcRSI, calcMACD, calcSMA } from './technicals';
 import { analyzeIV } from './ivAnalysis';
 import type { IVAnalysis } from './ivAnalysis';
+import { calcRelativeStrength } from './sectorAnalysis';
 import { calculateRisk } from './riskCalculations';
 import type { RiskBreakdown } from './riskCalculations';
+
+// Optional, gracefully-degrading inputs added in IE-1: deep Yahoo modules, market context,
+// relative-strength baseline (SPY bars), and earnings proximity. Each signal builder
+// returns [] if its inputs are missing, so the engine stays backward compatible.
+export interface ScoreSignalsOpts {
+  spyBars?: PriceBar[];
+  deepFundamentals?: DeepFundamentals;
+  marketContext?: MarketContext;
+  earnings?: EarningsData;
+}
 
 // ── Types ──
 
@@ -475,6 +494,255 @@ function buildVolatilitySignals(fundamentals?: FundamentalsData, ivData?: IVAnal
   return signals;
 }
 
+// ── Relative strength signal (stock vs SPY) ──
+
+function buildRelativeStrengthSignal(bars: PriceBar[], spyBars?: PriceBar[]): Signal[] {
+  if (!spyBars || spyBars.length < 2 || bars.length < 2) return [];
+  // Align lengths to the shorter series so we compare the same window.
+  const n = Math.min(bars.length, spyBars.length);
+  const stock = bars.slice(-n);
+  const spy = spyBars.slice(-n);
+  const rs = calcRelativeStrength(stock, spy);
+  if (rs == null) return [];
+
+  let score: number, direction: Signal['direction'], reason: string;
+  if (rs > 5) {
+    score = 0.7; direction = 'bullish';
+    reason = `Strong outperformance vs SPY (+${rs.toFixed(1)}pp over window)`;
+  } else if (rs > 1.5) {
+    score = 0.3; direction = 'bullish';
+    reason = `Outperforming SPY (+${rs.toFixed(1)}pp)`;
+  } else if (rs < -5) {
+    score = -0.7; direction = 'bearish';
+    reason = `Significant underperformance vs SPY (${rs.toFixed(1)}pp)`;
+  } else if (rs < -1.5) {
+    score = -0.3; direction = 'bearish';
+    reason = `Lagging SPY (${rs.toFixed(1)}pp)`;
+  } else {
+    score = 0; direction = 'neutral';
+    reason = `Tracking SPY (${rs >= 0 ? '+' : ''}${rs.toFixed(1)}pp)`;
+  }
+  return [{
+    label: `RS ${rs >= 0 ? '+' : ''}${rs.toFixed(1)}pp`,
+    category: 'technical',
+    direction,
+    reason,
+    score,
+    confidence: 0.65,
+  }];
+}
+
+// ── Deep-fundamentals signals (insider, analyst trend, instOwn flow, FCF trend) ──
+
+function buildDeepFundamentalSignals(deep?: DeepFundamentals): Signal[] {
+  if (!deep) return [];
+  const out: Signal[] = [];
+
+  // Insider net buying (last 90d)
+  if (deep.netInsider90d != null && deep.insiderTxCount90d != null && deep.insiderTxCount90d > 0) {
+    const net = deep.netInsider90d;
+    const absNet = Math.abs(net);
+    const m = absNet / 1e6;
+    const label = `Insider ${net >= 0 ? '+' : '-'}$${m >= 1 ? m.toFixed(1) + 'M' : (absNet / 1e3).toFixed(0) + 'K'}`;
+    let score: number, direction: Signal['direction'], reason: string;
+    if (net > 500_000) {
+      score = 0.5; direction = 'bullish';
+      reason = `Net insider buying ($${(net / 1e6).toFixed(2)}M, ${deep.insiderTxCount90d} txns / 90d)`;
+    } else if (net > 0) {
+      score = 0.2; direction = 'bullish';
+      reason = `Modest insider buying ($${(net / 1e3).toFixed(0)}K / 90d)`;
+    } else if (net < -5_000_000) {
+      score = -0.5; direction = 'bearish';
+      reason = `Heavy insider selling ($${(absNet / 1e6).toFixed(1)}M / 90d)`;
+    } else if (net < -500_000) {
+      score = -0.2; direction = 'bearish';
+      reason = `Net insider selling ($${(absNet / 1e6).toFixed(2)}M / 90d)`;
+    } else {
+      score = 0; direction = 'neutral';
+      reason = `Light insider activity (net $${(net / 1e3).toFixed(0)}K / 90d)`;
+    }
+    out.push({ label, category: 'fundamental', direction, reason, score, confidence: 0.55 });
+  }
+
+  // Analyst rating shift (60d)
+  if (deep.analystTrendShift != null && ((deep.analystUpgrades60d ?? 0) + (deep.analystDowngrades60d ?? 0) > 0)) {
+    const shift = deep.analystTrendShift;
+    const ups = deep.analystUpgrades60d ?? 0;
+    const downs = deep.analystDowngrades60d ?? 0;
+    let score: number, direction: Signal['direction'], reason: string;
+    if (shift >= 3) {
+      score = 0.5; direction = 'bullish';
+      reason = `Analyst momentum: ${ups} upgrades vs ${downs} downgrades / 60d`;
+    } else if (shift >= 1) {
+      score = 0.25; direction = 'bullish';
+      reason = `Net analyst upgrades: ${ups} up, ${downs} down / 60d`;
+    } else if (shift <= -3) {
+      score = -0.5; direction = 'bearish';
+      reason = `Analyst sentiment deteriorating: ${ups} up, ${downs} down / 60d`;
+    } else if (shift <= -1) {
+      score = -0.25; direction = 'bearish';
+      reason = `Net analyst downgrades: ${ups} up, ${downs} down / 60d`;
+    } else {
+      score = 0; direction = 'neutral';
+      reason = `Balanced analyst actions (${ups} up, ${downs} down / 60d)`;
+    }
+    out.push({
+      label: `Analyst ${shift >= 0 ? '+' : ''}${shift}`,
+      category: 'fundamental', direction, reason, score, confidence: 0.6,
+    });
+  }
+
+  // Institutional ownership flow (avg pctChange across top holders)
+  if (deep.institutionalFlowQoQ != null) {
+    const flow = deep.institutionalFlowQoQ;
+    let score: number, direction: Signal['direction'], reason: string;
+    if (flow > 0.05) {
+      score = 0.35; direction = 'bullish';
+      reason = `Institutions accumulating (+${(flow * 100).toFixed(1)}% avg position change)`;
+    } else if (flow > 0.01) {
+      score = 0.15; direction = 'bullish';
+      reason = `Mild institutional inflows (+${(flow * 100).toFixed(1)}%)`;
+    } else if (flow < -0.05) {
+      score = -0.35; direction = 'bearish';
+      reason = `Institutions distributing (${(flow * 100).toFixed(1)}% avg position change)`;
+    } else if (flow < -0.01) {
+      score = -0.15; direction = 'bearish';
+      reason = `Mild institutional outflows (${(flow * 100).toFixed(1)}%)`;
+    } else {
+      score = 0; direction = 'neutral';
+      reason = `Flat institutional positioning (${(flow * 100).toFixed(2)}%)`;
+    }
+    out.push({ label: 'Inst Flow', category: 'fundamental', direction, reason, score, confidence: 0.5 });
+  }
+
+  // FCF trend (YoY)
+  if (deep.fcfTrend && deep.fcfMostRecent != null && deep.fcfPrior != null) {
+    const recent = deep.fcfMostRecent;
+    const prior  = deep.fcfPrior;
+    const delta = recent - prior;
+    const pct = prior !== 0 ? (delta / Math.abs(prior)) * 100 : 0;
+    const fmt = (n: number) => {
+      const m = Math.abs(n) / 1e9;
+      if (m >= 1) return `${n < 0 ? '-' : ''}$${m.toFixed(1)}B`;
+      return `${n < 0 ? '-' : ''}$${(Math.abs(n) / 1e6).toFixed(0)}M`;
+    };
+    let score: number, direction: Signal['direction'], reason: string;
+    if (deep.fcfTrend === 'improving') {
+      score = 0.4; direction = 'bullish';
+      reason = `FCF improving YoY (${fmt(prior)} → ${fmt(recent)}, ${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%)`;
+    } else if (deep.fcfTrend === 'declining') {
+      score = -0.4; direction = 'bearish';
+      reason = `FCF declining YoY (${fmt(prior)} → ${fmt(recent)}, ${pct.toFixed(0)}%)`;
+    } else if (deep.fcfTrend === 'mixed') {
+      score = 0; direction = 'neutral';
+      reason = `FCF trend inconsistent across last 3 years`;
+    } else {
+      score = recent > 0 ? 0.1 : -0.1;
+      direction = recent > 0 ? 'neutral' : 'bearish';
+      reason = `FCF roughly flat (${fmt(prior)} → ${fmt(recent)})`;
+    }
+    out.push({ label: 'FCF Trend', category: 'fundamental', direction, reason, score, confidence: 0.6 });
+  }
+
+  return out;
+}
+
+// ── Market context signal (regime + breadth + dispersion) ──
+
+function buildMarketContextSignal(ctx?: MarketContext): Signal[] {
+  if (!ctx) return [];
+  const parts: number[] = [];
+  const fragments: string[] = [];
+
+  if (ctx.vixBand) {
+    const vixScore =
+      ctx.vixBand === 'calm'     ?  0.4
+      : ctx.vixBand === 'normal' ?  0.1
+      : ctx.vixBand === 'elevated' ? -0.3
+      : -0.6; // fear
+    parts.push(vixScore);
+    fragments.push(`VIX ${ctx.vixLevel != null ? ctx.vixLevel.toFixed(1) : '?'} (${ctx.vixBand})`);
+  }
+
+  if (ctx.sectorBreadth50d != null) {
+    const b = ctx.sectorBreadth50d;
+    const breadthScore =
+      b >= 0.75 ? 0.4
+      : b >= 0.5 ? 0.15
+      : b >= 0.3 ? -0.15
+      : -0.4;
+    parts.push(breadthScore);
+    fragments.push(`${Math.round(b * 100)}% sectors > 50d SMA`);
+  }
+
+  if (ctx.sectorDispersion != null) {
+    // High dispersion = stock-picker's market (slight positive for directional convictions);
+    // very low dispersion = correlated risk-on/off (slightly cautious).
+    const d = ctx.sectorDispersion;
+    if (d > 1.5) {
+      parts.push(0.1);
+      fragments.push(`high sector dispersion ${d.toFixed(2)}pp`);
+    } else if (d < 0.4) {
+      parts.push(-0.1);
+      fragments.push(`compressed sector dispersion ${d.toFixed(2)}pp`);
+    }
+  }
+
+  if (parts.length === 0) return [];
+  const score = parts.reduce((a, b) => a + b, 0) / parts.length;
+  const direction: Signal['direction'] = score > 0.1 ? 'bullish' : score < -0.1 ? 'bearish' : 'neutral';
+  return [{
+    label: 'Market Regime',
+    category: 'volatility',
+    direction,
+    reason: `Macro context: ${fragments.join('; ')}`,
+    score,
+    confidence: 0.55,
+  }];
+}
+
+// ── Earnings proximity signal ──
+//
+// Adds a small volatility-category signal as earnings approach. Doesn't pick a
+// direction (earnings cut both ways), but flags IV-crush risk for premium-buying
+// strategies via warnings added in buildReasoning.
+
+function daysUntilEarnings(earnings?: EarningsData): number | null {
+  if (!earnings?.nextEarningsDate) return null;
+  const target = new Date(earnings.nextEarningsDate + 'T00:00:00').getTime();
+  const today = new Date();
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const days = Math.round((target - t0) / 86400000);
+  return days >= 0 ? days : null;
+}
+
+function buildEarningsProximitySignal(earnings?: EarningsData): Signal[] {
+  const days = daysUntilEarnings(earnings);
+  if (days == null || days > 14) return [];
+
+  // Small positive volatility-category nudge: IV is artificially elevated near
+  // earnings, which favors premium-selling. Magnitude scales with proximity.
+  let score: number, reason: string;
+  if (days <= 3) {
+    score = 0.3;
+    reason = `Earnings in ${days === 0 ? '<1 day' : days + ' day' + (days === 1 ? '' : 's')} — IV inflated, expect post-report crush`;
+  } else if (days <= 7) {
+    score = 0.2;
+    reason = `Earnings in ${days} days — IV elevated, premium-sellers favored`;
+  } else {
+    score = 0.1;
+    reason = `Earnings in ${days} days — IV starting to build`;
+  }
+  return [{
+    label: `Earnings ${days}d`,
+    category: 'volatility',
+    direction: 'neutral',
+    reason,
+    score,
+    confidence: 0.7,
+  }];
+}
+
 // ── Composite scoring ──
 
 export function scoreSignals(
@@ -482,13 +750,24 @@ export function scoreSignals(
   bars: PriceBar[],
   fundamentals?: FundamentalsData,
   optionsChain?: OptionsChainData,
+  opts?: ScoreSignalsOpts,
 ): ScoringResult & { ivAnalysis?: IVAnalysis | null } {
-  const technical = buildTechnicalSignals(quote, bars);
-  const fundamental = buildFundamentalSignals(fundamentals);
+  const technical = [
+    ...buildTechnicalSignals(quote, bars),
+    ...buildRelativeStrengthSignal(bars, opts?.spyBars),
+  ];
+  const fundamental = [
+    ...buildFundamentalSignals(fundamentals),
+    ...buildDeepFundamentalSignals(opts?.deepFundamentals),
+  ];
 
   // IV analysis from options chain
   const ivData = optionsChain ? analyzeIV(optionsChain, quote.price, bars) : null;
-  const volatility = buildVolatilitySignals(fundamentals, ivData);
+  const volatility = [
+    ...buildVolatilitySignals(fundamentals, ivData),
+    ...buildMarketContextSignal(opts?.marketContext),
+    ...buildEarningsProximitySignal(opts?.earnings),
+  ];
   const signals = [...technical, ...fundamental, ...volatility];
 
   if (signals.length === 0) {
@@ -691,6 +970,7 @@ function buildReasoning(
   candidate: StrategyCandidate,
   result: ScoringResult,
   fundamentals?: FundamentalsData,
+  earnings?: EarningsData,
 ): RecommendationReasoning {
   const { compositeScore, signals, bullishCount, bearishCount, signalAgreement } = result;
 
@@ -742,6 +1022,20 @@ function buildReasoning(
     }
   }
 
+  // Earnings-proximity warnings — IV crush hurts premium-buyers most
+  const eDays = daysUntilEarnings(earnings);
+  if (eDays != null && eDays <= 10) {
+    const isPremiumBuyer = IV_FAVORED.low.includes(candidate.strategy);
+    const phrase = eDays === 0 ? 'today' : eDays === 1 ? 'tomorrow' : `in ${eDays} days`;
+    if (isPremiumBuyer && eDays <= 3) {
+      warnings.push(`Earnings ${phrase} — long-vol positions exposed to IV crush after the report`);
+    } else if (eDays <= 3) {
+      warnings.push(`Earnings ${phrase} — overnight gap risk on the report`);
+    } else if (isPremiumBuyer) {
+      warnings.push(`Earnings ${phrase} — IV may crush after the report, eroding long-premium value`);
+    }
+  }
+
   return { primary, supporting, warnings: warnings.slice(0, 3) };
 }
 
@@ -756,6 +1050,7 @@ export function buildRecommendations(
   quote: QuoteData,
   fundamentals?: FundamentalsData,
   optionsChain?: OptionsChainData,
+  opts?: ScoreSignalsOpts,
 ): Recommendation[] {
   if (result.signals.length === 0) return [];
 
@@ -790,7 +1085,7 @@ export function buildRecommendations(
         confidence = Math.min(1, Math.max(0, confidence));
       }
 
-      return { ...s, confidence, reasoning: buildReasoning(s, result, fundamentals) };
+      return { ...s, confidence, reasoning: buildReasoning(s, result, fundamentals, opts?.earnings) };
     })
     .filter(s => s.confidence >= QUALITY_THRESHOLD)
     .sort((a, b) => b.confidence - a.confidence)

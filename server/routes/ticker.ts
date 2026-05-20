@@ -189,6 +189,154 @@ router.get('/:symbol/fundamentals', async (req, res) => {
   }
 });
 
+// GET /api/ticker/:symbol/deep-fundamentals - Insider txns, analyst trend, instOwn flow, FCF trend.
+// Heavier pull than /fundamentals — separated so the existing fast path stays fast.
+router.get('/:symbol/deep-fundamentals', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const data = await cachedCall(
+      `ticker:deep-fundamentals:${symbol}`,
+      60 * 60 * 1000, // 1 hour — these series move on quarterly/filing cadence
+      async () => {
+        let summary: any;
+        try {
+          summary = await yf.quoteSummary(symbol, {
+            modules: [
+              'insiderTransactions',
+              'upgradeDowngradeHistory',
+              'recommendationTrend',
+              'institutionOwnership',
+              'cashflowStatementHistory',
+            ] as any,
+          });
+        } catch {
+          return { symbol };
+        }
+
+        const now = Date.now();
+        const ms90d = 90 * 86400 * 1000;
+        const ms60d = 60 * 86400 * 1000;
+
+        // ── Insider transactions (last 90d) ──
+        const txns: any[] = summary?.insiderTransactions?.transactions ?? [];
+        let netInsider90d = 0;
+        let insiderTxCount90d = 0;
+        for (const t of txns) {
+          const ts = t.startDate instanceof Date ? t.startDate.getTime()
+            : typeof t.startDate === 'string' ? new Date(t.startDate).getTime()
+            : 0;
+          if (!ts || now - ts > ms90d) continue;
+          const val = typeof t.value === 'number' ? t.value : 0;
+          const text = typeof t.transactionText === 'string' ? t.transactionText.toLowerCase() : '';
+          // Yahoo's `value` is unsigned dollar value; direction comes from transactionText.
+          // Awards, grants, exercises don't reflect open-market sentiment, so skip them.
+          if (text.includes('purchase')) {
+            netInsider90d += val;
+            insiderTxCount90d++;
+          } else if (text.includes('sale')) {
+            netInsider90d -= val;
+            insiderTxCount90d++;
+          }
+        }
+
+        // ── Analyst upgrade/downgrade trend (last 60d) ──
+        const history: any[] = summary?.upgradeDowngradeHistory?.history ?? [];
+        let analystUpgrades60d = 0;
+        let analystDowngrades60d = 0;
+        for (const h of history) {
+          const ts = h.epochGradeDate instanceof Date ? h.epochGradeDate.getTime()
+            : typeof h.epochGradeDate === 'string' ? new Date(h.epochGradeDate).getTime()
+            : 0;
+          if (!ts || now - ts > ms60d) continue;
+          if (h.action === 'up') analystUpgrades60d++;
+          else if (h.action === 'down') analystDowngrades60d++;
+        }
+        const analystTrendShift = analystUpgrades60d - analystDowngrades60d;
+
+        // ── Recommendation trend snapshot (most recent period) ──
+        const trend: any[] = summary?.recommendationTrend?.trend ?? [];
+        const latestTrend = trend.find((t: any) => t.period === '0m') ?? trend[0];
+        const recommendationTrend = latestTrend ? {
+          strongBuy: latestTrend.strongBuy ?? 0,
+          buy:       latestTrend.buy       ?? 0,
+          hold:      latestTrend.hold      ?? 0,
+          sell:      latestTrend.sell      ?? 0,
+          strongSell: latestTrend.strongSell ?? 0,
+        } : undefined;
+
+        // ── Institutional ownership flow (avg pctChange across top holders) ──
+        const owners: any[] = summary?.institutionOwnership?.ownershipList ?? [];
+        let institutionalFlowQoQ: number | undefined;
+        if (owners.length > 0) {
+          const changes = owners
+            .map((o: any) => typeof o.pctChange === 'number' ? o.pctChange : null)
+            .filter((c: number | null): c is number => c !== null && isFinite(c));
+          if (changes.length > 0) {
+            institutionalFlowQoQ = changes.reduce((a: number, b: number) => a + b, 0) / changes.length;
+          }
+        }
+
+        // ── Free cash flow trend (most recent 2 FY) ──
+        const cfStatements: any[] = summary?.cashflowStatementHistory?.cashflowStatements ?? [];
+        const fcfSeries: number[] = cfStatements
+          .map((c: any) => {
+            // Prefer explicit freeCashFlow if Yahoo provides it; otherwise derive
+            // from operating cash flow + capital expenditures (capex is negative).
+            if (typeof c.freeCashFlow === 'number' && isFinite(c.freeCashFlow)) return c.freeCashFlow;
+            const op = typeof c.totalCashFromOperatingActivities === 'number' ? c.totalCashFromOperatingActivities : 0;
+            const capex = typeof c.capitalExpenditures === 'number' ? c.capitalExpenditures : 0;
+            const derived = op + capex;
+            return isFinite(derived) ? derived : null;
+          })
+          .filter((v: number | null): v is number => v !== null);
+
+        let fcfTrend: 'improving' | 'declining' | 'mixed' | 'neutral' | undefined;
+        let fcfMostRecent: number | undefined;
+        let fcfPrior: number | undefined;
+        if (fcfSeries.length >= 2) {
+          fcfMostRecent = fcfSeries[0];
+          fcfPrior      = fcfSeries[1];
+          const delta = fcfMostRecent - fcfPrior;
+          const denom = Math.abs(fcfPrior);
+          if (denom > 0) {
+            const pct = delta / denom;
+            if (pct > 0.10)       fcfTrend = 'improving';
+            else if (pct < -0.10) fcfTrend = 'declining';
+            else                  fcfTrend = 'neutral';
+          } else {
+            fcfTrend = fcfMostRecent > 0 ? 'improving' : 'declining';
+          }
+          // Mixed signal: latest up but second-to-last drop, or vice-versa.
+          if (fcfSeries.length >= 3) {
+            const earlier = fcfSeries[2];
+            const recentUp = fcfMostRecent > fcfPrior;
+            const priorUp  = fcfPrior > earlier;
+            if (recentUp !== priorUp) fcfTrend = 'mixed';
+          }
+        }
+
+        return {
+          symbol,
+          netInsider90d:           netInsider90d || undefined,
+          insiderTxCount90d:       insiderTxCount90d || undefined,
+          analystTrendShift,
+          analystUpgrades60d,
+          analystDowngrades60d,
+          recommendationTrend,
+          institutionalFlowQoQ,
+          fcfTrend,
+          fcfMostRecent,
+          fcfPrior,
+        };
+      },
+    );
+    res.json(data);
+  } catch (err: any) {
+    console.error('Deep fundamentals error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch deep fundamentals' });
+  }
+});
+
 // GET /api/ticker/:symbol/filings - Most recent 10-K via SEC EDGAR
 router.get('/:symbol/filings', async (req, res) => {
   try {

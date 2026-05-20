@@ -1,7 +1,18 @@
 import { useState, useCallback, useEffect } from 'react';
-import { ticker as tickerApi } from '../../api/client';
+import { ticker as tickerApi, market as marketApi } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
-import type { PriceBar, QuoteData, OptionContract, OptionsChainData, AssetProfile, FundamentalsData, FilingsData, EarningsData } from '../../api/types';
+import type {
+  PriceBar,
+  QuoteData,
+  OptionContract,
+  OptionsChainData,
+  AssetProfile,
+  FundamentalsData,
+  FilingsData,
+  EarningsData,
+  DeepFundamentals,
+  MarketContext,
+} from '../../api/types';
 import SymbolSearch from './SymbolSearch';
 import TickerQuoteCard from './TickerQuoteCard';
 import AssetProfileCard from './AssetProfile';
@@ -85,6 +96,26 @@ export default function TickerResearch({ onAnalyzeInCalculator, prefillSymbol, o
   } = useApi<PriceBar[]>(
     () => tickerApi.getHistory(symbol, range, interval),
     [symbol, range, interval],
+    { autoFetch: !!symbol },
+  );
+
+  // SPY baseline for relative-strength signal — match the user's chosen range,
+  // daily bars (matches calcRelativeStrength's window-comparison contract).
+  const { data: spyBars } = useApi<PriceBar[]>(
+    () => tickerApi.getHistory('SPY', range, '1d'),
+    [symbol, range],
+    { autoFetch: !!symbol },
+  );
+
+  const { data: deepFundamentals } = useApi<DeepFundamentals>(
+    () => tickerApi.getDeepFundamentals(symbol),
+    [symbol],
+    { autoFetch: !!symbol },
+  );
+
+  const { data: marketContext } = useApi<MarketContext>(
+    () => marketApi.getContext(),
+    [symbol],
     { autoFetch: !!symbol },
   );
 
@@ -174,7 +205,16 @@ export default function TickerResearch({ onAnalyzeInCalculator, prefillSymbol, o
             <TechnicalIndicators bars={bars} />
           )}
 
-          <TradeRecommendations quote={quote} bars={bars ?? []} fundamentals={fundamentals ?? undefined} optionsChain={optionsChain ?? undefined} />
+          <TradeRecommendations
+            quote={quote}
+            bars={bars ?? []}
+            fundamentals={fundamentals ?? undefined}
+            optionsChain={optionsChain ?? undefined}
+            spyBars={spyBars ?? undefined}
+            deepFundamentals={deepFundamentals ?? undefined}
+            marketContext={marketContext ?? undefined}
+            earnings={earnings ?? undefined}
+          />
 
           <OptionsChain
             symbol={symbol}

@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import type { PriceBar, QuoteData, FundamentalsData, OptionsChainData } from '../../api/types';
+import type {
+  PriceBar,
+  QuoteData,
+  FundamentalsData,
+  OptionsChainData,
+  DeepFundamentals,
+  MarketContext,
+  EarningsData,
+} from '../../api/types';
 import { scoreSignals, buildRecommendations, generateTradesSummary } from '../../utils/recommendationEngine';
 import type { Signal, Recommendation } from '../../utils/recommendationEngine';
 import type { RiskFactor } from '../../utils/riskCalculations';
@@ -9,6 +17,10 @@ interface Props {
   bars: PriceBar[];
   fundamentals?: FundamentalsData;
   optionsChain?: OptionsChainData;
+  spyBars?: PriceBar[];
+  deepFundamentals?: DeepFundamentals;
+  marketContext?: MarketContext;
+  earnings?: EarningsData;
 }
 
 const DIRECTION_COLOR: Record<Signal['direction'], string> = {
@@ -190,7 +202,16 @@ function RecCard({ r, index }: { r: Recommendation; index: number }) {
   );
 }
 
-export default function TradeRecommendations({ quote, bars, fundamentals, optionsChain }: Props) {
+export default function TradeRecommendations({
+  quote,
+  bars,
+  fundamentals,
+  optionsChain,
+  spyBars,
+  deepFundamentals,
+  marketContext,
+  earnings,
+}: Props) {
   if (bars.length < 30) {
     return (
       <div className="trade-recs-card">
@@ -202,8 +223,9 @@ export default function TradeRecommendations({ quote, bars, fundamentals, option
     );
   }
 
-  const result = scoreSignals(quote, bars, fundamentals, optionsChain);
-  const recs = buildRecommendations(result, quote, fundamentals, optionsChain);
+  const opts = { spyBars, deepFundamentals, marketContext, earnings };
+  const result = scoreSignals(quote, bars, fundamentals, optionsChain, opts);
+  const recs = buildRecommendations(result, quote, fundamentals, optionsChain, opts);
   const summary = generateTradesSummary(quote.symbol, result, recs, fundamentals);
 
   const sentiment =

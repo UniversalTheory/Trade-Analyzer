@@ -1,5 +1,8 @@
 import { Router } from 'express';
+import YahooFinance from 'yahoo-finance2';
 import { getProvider, cachedCall, TTLCache } from '../services/providerRegistry.js';
+
+const yfMkt = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 const router = Router();
 
@@ -207,6 +210,87 @@ router.get('/calendar', async (_req, res) => {
   } catch (err: any) {
     console.error('Economic calendar error:', err.message);
     res.status(500).json({ error: 'Failed to fetch economic calendar' });
+  }
+});
+
+// GET /api/market/context - Market regime + breadth proxies (VIX band, sector dispersion, sector breadth).
+// Single cached read used by the recommendation engine to add a macro-context signal.
+router.get('/context', async (_req, res) => {
+  try {
+    const data = await cachedCall(
+      'market:context',
+      15 * 60 * 1000,
+      async () => {
+        const SECTOR_ETFS = ['XLK', 'XLV', 'XLF', 'XLE', 'XLU', 'XLY', 'XLP', 'XLI', 'XLB', 'XLRE', 'XLC'];
+
+        // VIX
+        let vixLevel: number | undefined;
+        try {
+          const v = await yfMkt.quote('^VIX');
+          if (typeof (v as any).regularMarketPrice === 'number') vixLevel = (v as any).regularMarketPrice;
+        } catch { /* ignore */ }
+
+        const vixBand: 'calm' | 'normal' | 'elevated' | 'fear' | undefined =
+          vixLevel == null ? undefined
+          : vixLevel < 15 ? 'calm'
+          : vixLevel < 20 ? 'normal'
+          : vixLevel < 30 ? 'elevated'
+          : 'fear';
+
+        // Sector ETFs: pull quote (for changePercent) + 3m daily history (for 50d SMA).
+        const sectorResults = await Promise.allSettled(
+          SECTOR_ETFS.map(async (sym) => {
+            const [q, hist] = await Promise.all([
+              yfMkt.quote(sym),
+              yfMkt.chart(sym, {
+                period1: new Date(Date.now() - 90 * 86400 * 1000),
+                interval: '1d',
+              }),
+            ]);
+            const closes: number[] = (hist.quotes ?? [])
+              .map((b: any) => b.close)
+              .filter((c: number) => typeof c === 'number' && isFinite(c));
+            return {
+              sym,
+              changePercent: (q as any).regularMarketChangePercent ?? null,
+              price:         (q as any).regularMarketPrice ?? null,
+              closes,
+            };
+          }),
+        );
+
+        const rows = sectorResults
+          .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+          .map(r => r.value);
+
+        const changes = rows
+          .map((r: any) => r.changePercent)
+          .filter((c: any) => typeof c === 'number' && isFinite(c));
+
+        let sectorDispersion: number | undefined;
+        if (changes.length >= 2) {
+          const mean = changes.reduce((a: number, b: number) => a + b, 0) / changes.length;
+          const variance = changes.reduce((s: number, c: number) => s + (c - mean) ** 2, 0) / changes.length;
+          sectorDispersion = Math.sqrt(variance);
+        }
+
+        let above50d = 0;
+        let breadthDenom = 0;
+        for (const r of rows) {
+          if (typeof r.price !== 'number' || r.closes.length < 50) continue;
+          const sma50 = r.closes.slice(-50).reduce((a: number, b: number) => a + b, 0) / 50;
+          breadthDenom++;
+          if (r.price > sma50) above50d++;
+        }
+        const sectorBreadth50d = breadthDenom > 0 ? above50d / breadthDenom : undefined;
+
+        return { vixLevel, vixBand, sectorDispersion, sectorBreadth50d };
+      },
+    );
+    res.json(data);
+  } catch (err: any) {
+    console.error('Market context error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch market context' });
   }
 });
 

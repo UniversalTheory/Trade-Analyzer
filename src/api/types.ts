@@ -151,6 +151,41 @@ export interface FundamentalsData {
   analystCount?: number;
 }
 
+export interface DeepFundamentals {
+  symbol: string;
+  // Net insider transaction dollar value over last 90 days (positive = net buying).
+  netInsider90d?: number;
+  insiderTxCount90d?: number;
+  // Net analyst rating changes over last 60 days (upgrades minus downgrades).
+  analystTrendShift?: number;
+  analystUpgrades60d?: number;
+  analystDowngrades60d?: number;
+  // Snapshot of the most recent recommendationTrend bucket
+  // (analyst recommendation distribution).
+  recommendationTrend?: {
+    strongBuy: number;
+    buy: number;
+    hold: number;
+    sell: number;
+    strongSell: number;
+  };
+  // Quarter-over-quarter delta in % held by institutions (positive = accumulating).
+  institutionalFlowQoQ?: number;
+  // Free cash flow trend: 'improving' (most recent FY > prior FY), 'declining', 'mixed'.
+  fcfTrend?: 'improving' | 'declining' | 'mixed' | 'neutral';
+  fcfMostRecent?: number;
+  fcfPrior?: number;
+}
+
+export interface MarketContext {
+  vixLevel?: number;
+  vixBand?: 'calm' | 'normal' | 'elevated' | 'fear';
+  // Stdev of the 11 SPDR sector ETFs' 1-day percent changes (in percentage points).
+  sectorDispersion?: number;
+  // Fraction of sector ETFs trading above their 50-day SMA, 0..1.
+  sectorBreadth50d?: number;
+}
+
 export interface EconomicEvent {
   event: string;
   country: string;

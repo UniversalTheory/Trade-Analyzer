@@ -39,6 +39,7 @@ export const market = {
   getInternational: () => request<import('./types').QuoteData[]>('/market/international'),
   getCommodities: (live = false) => request<import('./types').QuoteData[]>(`/market/commodities${live ? '?live=true' : ''}`),
   getCalendar: () => request<{ events: import('./types').EconomicEvent[]; unavailable?: boolean }>('/market/calendar'),
+  getContext: () => request<import('./types').MarketContext>('/market/context'),
 };
 
 // Sector endpoints
@@ -61,6 +62,8 @@ export const ticker = {
   getNews: (symbol: string) => request<import('./types').NewsItem[]>(`/ticker/${symbol}/news`),
   getProfile: (symbol: string) => request<import('./types').AssetProfile>(`/ticker/${symbol}/profile`),
   getFundamentals: (symbol: string) => request<import('./types').FundamentalsData>(`/ticker/${symbol}/fundamentals`),
+  getDeepFundamentals: (symbol: string) =>
+    request<import('./types').DeepFundamentals>(`/ticker/${symbol}/deep-fundamentals`),
   getFilings: (symbol: string) => request<import('./types').FilingsData>(`/ticker/${symbol}/filings`),
   getOptions: (symbol: string, expiration?: string) => {
     const params = expiration ? `?expiration=${expiration}` : '';

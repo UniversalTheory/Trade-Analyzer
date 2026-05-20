@@ -11,6 +11,7 @@ import type {
   OptionContract,
   SymbolSearchResult,
 } from './types.js';
+import { scoreLexicon } from './newsSentiment.js';
 
 const yahooFinance = new YahooFinance({
   suppressNotices: ['yahooSurvey'],
@@ -90,6 +91,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
           : Date.now() / 1000,
         category: _category,
         related: _query,
+        sentiment: scoreLexicon(`${item.title ?? ''} ${item.summary ?? ''}`),
       }));
     } catch (err) {
       console.error('Yahoo Finance news error:', err);
