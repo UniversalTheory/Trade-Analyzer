@@ -163,7 +163,7 @@ export default function YourPortfolioToday({ refreshKey, onShowInResearch }: Pro
       });
     }
     rows.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
-    return rows.slice(0, 3);
+    return rows.slice(0, 5);
   }, [positions, quotes]);
 
   const moverSymbolsKey = movers.map(m => m.position.symbol).join(',');
@@ -248,7 +248,10 @@ export default function YourPortfolioToday({ refreshKey, onShowInResearch }: Pro
 
           <div className="briefing-portfolio-grid">
             <div>
-              <div className="briefing-mini-heading">Top movers today</div>
+              <div className="briefing-mini-heading">
+                Top movers today
+                <span className="briefing-mini-meta"> · ranked by USD impact on portfolio</span>
+              </div>
               {movers.length === 0 && (
                 <div className="briefing-empty-line">Waiting for quotes…</div>
               )}
