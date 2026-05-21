@@ -5,6 +5,7 @@ import SectorResearch from './components/Sector/SectorResearch';
 import TickerResearch, { type CalcPrefill } from './components/Ticker/TickerResearch';
 import Portfolio from './components/Portfolio/Portfolio';
 import DailyBriefing from './components/DailyBriefing/DailyBriefing';
+import UsageWidget from './components/UsageWidget/UsageWidget';
 import { useRevealObserver } from './hooks/useRevealObserver';
 
 type Tab = 'briefing' | 'home' | 'sector' | 'ticker' | 'options' | 'portfolio';
@@ -66,27 +67,30 @@ export default function App() {
           </div>
         </div>
 
-        <nav className="tab-nav" ref={navRef}>
-          {/* Sliding active-tab pill — animates between tab positions */}
-          {indicator && (
-            <span
-              className="tab-indicator"
-              style={{ left: indicator.left, width: indicator.width }}
-              aria-hidden="true"
-            />
-          )}
-          {TABS.map((tab, i) => (
-            <button
-              key={tab.id}
-              ref={el => { btnRefs.current[i] = el; }}
-              className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <span>{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+        <div className="header-right">
+          <nav className="tab-nav" ref={navRef}>
+            {/* Sliding active-tab pill — animates between tab positions */}
+            {indicator && (
+              <span
+                className="tab-indicator"
+                style={{ left: indicator.left, width: indicator.width }}
+                aria-hidden="true"
+              />
+            )}
+            {TABS.map((tab, i) => (
+              <button
+                key={tab.id}
+                ref={el => { btnRefs.current[i] = el; }}
+                className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <span>{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+          <UsageWidget />
+        </div>
       </header>
 
       <main className="main-content">

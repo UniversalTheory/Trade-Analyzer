@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ai, market, ticker } from '../../api/client';
+import { setSnapshot as setUsageSnapshot } from '../../utils/aiUsageStore';
 import type {
   QuoteData,
   SectorPerformance,
@@ -122,6 +123,7 @@ export default function AICommentary({ refreshKey }: Props) {
         });
 
         if (cancelled || reqId.current !== my) return;
+        setUsageSnapshot(resp.usage);
         setPhase({
           kind: 'ready',
           text: resp.text,
