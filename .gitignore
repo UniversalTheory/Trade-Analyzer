@@ -26,3 +26,6 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# AI usage persistence (MTD spend, recent calls)
+.ai-usage.json
