@@ -73,5 +73,26 @@ export const ticker = {
     request<import('./types').EarningsData>(`/ticker/${symbol}/earnings`),
 };
 
+// AI endpoints
+export const ai = {
+  getStatus: () => request<{ configured: boolean }>('/ai/status'),
+  getUsage: () => request<import('./types').AiUsageSnapshot>('/ai/usage'),
+  analyze: (body: import('./types').AnalyzeRequest) =>
+    request<import('./types').AnalyzeResponse>('/ai/analyze', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  setCap: (capUsd: number) =>
+    request<import('./types').AiUsageSnapshot>('/ai/cap', {
+      method: 'POST',
+      body: JSON.stringify({ capUsd }),
+    }),
+  setToggle: (task: string, enabled: boolean) =>
+    request<import('./types').AiUsageSnapshot>('/ai/toggle', {
+      method: 'POST',
+      body: JSON.stringify({ task, enabled }),
+    }),
+};
+
 // Health check
 export const health = () => request<import('./types').HealthCheck>('/health');

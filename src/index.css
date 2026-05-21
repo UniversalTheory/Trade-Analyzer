@@ -6174,11 +6174,12 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* AI commentary placeholder */
-.briefing-section-ai-placeholder {
-  opacity: 0.7;
-  border-style: dashed;
-  border-color: rgba(168, 85, 247, 0.25);
+/* AI commentary section */
+.briefing-section-ai {
+  border-color: rgba(168, 85, 247, 0.22);
+  background:
+    linear-gradient(180deg, rgba(168, 85, 247, 0.04), transparent 60%),
+    var(--panel-bg, transparent);
 }
 
 .briefing-ai-badge {
@@ -6191,6 +6192,75 @@ body {
   background: rgba(168, 85, 247, 0.12);
   color: rgb(196, 156, 252);
   border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.briefing-ai-refresh {
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.briefing-ai-refresh:hover:not(:disabled) {
+  background: rgba(168, 85, 247, 0.10);
+  border-color: rgba(168, 85, 247, 0.5);
+  color: rgb(196, 156, 252);
+}
+
+.briefing-ai-refresh:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.briefing-ai-prose {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary, #e6e6e6);
+}
+
+.briefing-ai-prose p {
+  margin: 0 0 12px 0;
+}
+
+.briefing-ai-prose p:last-child {
+  margin-bottom: 0;
+}
+
+.briefing-ai-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(168, 85, 247, 0.12);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: lowercase;
+}
+
+.briefing-ai-skeleton {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 12px 0;
+}
+
+.briefing-ai-blocked,
+.briefing-ai-error {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding: 8px 0;
+}
+
+.briefing-ai-error {
+  color: var(--color-red);
 }
 
 /* ── Market Pulse (compact strip) ── */

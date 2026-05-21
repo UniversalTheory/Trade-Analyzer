@@ -243,3 +243,49 @@ export interface HealthCheck {
     anthropic: boolean;
   };
 }
+
+// ── AI (Intelligence Edition) ──
+
+export type ModelTier = 'haiku' | 'sonnet' | 'opus';
+
+export interface AnalyzeRequest {
+  task: string;
+  system: string;
+  userContent: string;
+  cacheableContext?: string;
+  model?: ModelTier;
+  maxTokens?: number;
+  temperature?: number;
+  cacheKey?: string;
+  cacheTtlMs?: number;
+  bypassCache?: boolean;
+}
+
+export type CapStatus = 'ok' | 'warn70' | 'warn90' | 'blocked';
+
+export interface AiUsageSnapshot {
+  mtdUsd: number;
+  sessionUsd: number;
+  capUsd: number;
+  capPct: number;
+  capStatus: CapStatus;
+  featureToggles: Record<string, boolean>;
+  recentCalls: Array<{
+    ts: number;
+    task: string;
+    model: ModelTier;
+    tokens: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number };
+    costUsd: number;
+    cached: boolean;
+  }>;
+  monthKey: string;
+}
+
+export interface AnalyzeResponse {
+  text: string;
+  fromCache: boolean;
+  costUsd: number;
+  modelTier: ModelTier;
+  modelId: string;
+  usage: AiUsageSnapshot;
+}

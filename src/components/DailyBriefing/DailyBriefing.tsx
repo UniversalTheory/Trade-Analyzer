@@ -3,7 +3,7 @@ import MarketPulse from './MarketPulse';
 import YourPortfolioToday from './YourPortfolioToday';
 import AcrossTheMarket from './AcrossTheMarket';
 import WhatToWatch from './WhatToWatch';
-import AICommentaryPlaceholder from './AICommentaryPlaceholder';
+import AICommentary from './AICommentary';
 import { fmtClockTime, fmtTimeAgo } from './timeHelpers';
 
 interface Props {
@@ -102,7 +102,7 @@ export default function DailyBriefing({ onShowInResearch }: Props) {
       <YourPortfolioToday refreshKey={refreshKey} onShowInResearch={onShowInResearch} />
       <AcrossTheMarket refreshKey={refreshKey} onShowInResearch={onShowInResearch} />
       <WhatToWatch refreshKey={refreshKey} />
-      <AICommentaryPlaceholder />
+      <AICommentary refreshKey={refreshKey} />
     </div>
   );
 }
