@@ -13,7 +13,7 @@ import {
 } from './portfolioAnalysis';
 
 export type SuggestionSeverity = 'info' | 'notice' | 'warning';
-export type SuggestionCategory  = 'sector' | 'concentration' | 'geography' | 'asset_class';
+export type SuggestionCategory  = 'sector' | 'concentration' | 'geography' | 'asset_class' | 'ai';
 export type SuggestionSource    = 'rule' | 'ai';
 
 export interface SuggestionCandidate {

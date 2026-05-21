@@ -6,6 +6,7 @@ import {
   type Suggestion,
   type SuggestionSeverity,
 } from '../../utils/portfolioSuggestions';
+import { useAiPortfolioSuggestions } from '../../utils/aiPortfolioSuggestions';
 
 interface Props {
   positions: PortfolioPosition[];
@@ -29,7 +30,7 @@ const SEV_COLOR: Record<SuggestionSeverity, string> = {
 };
 
 export default function SuggestionsSection(props: Props) {
-  const suggestions: Suggestion[] = useMemo(
+  const ruleSuggestions: Suggestion[] = useMemo(
     () => computeSuggestions({
       positions: props.positions,
       priceBySymbol: props.priceBySymbol,
@@ -39,15 +40,43 @@ export default function SuggestionsSection(props: Props) {
     [props.positions, props.priceBySymbol, props.profileBySymbol, props.cash],
   );
 
+  const aiState = useAiPortfolioSuggestions({
+    positions: props.positions,
+    priceBySymbol: props.priceBySymbol,
+    profileBySymbol: props.profileBySymbol,
+    cash: props.cash,
+    ruleBasedTitles: ruleSuggestions.map(s => s.title),
+  });
+
+  const aiSuggestions = aiState.kind === 'ready' ? aiState.suggestions : [];
+  const aiLoading = aiState.kind === 'loading';
+
+  // Order: rule-based by severity, then AI at the end.
+  const sevRank: Record<SuggestionSeverity, number> = { warning: 0, notice: 1, info: 2 };
+  const suggestions: Suggestion[] = [
+    ...ruleSuggestions.slice().sort((a, b) => sevRank[a.severity] - sevRank[b.severity]),
+    ...aiSuggestions,
+  ];
+
   const empty = props.positions.length === 0;
   const waiting = (props.profileLoading || props.someProfileMissing) && !empty;
+
+  const pillLabel =
+    aiSuggestions.length > 0 ? 'Rule + AI'
+    : aiLoading ? 'Rule + AI…'
+    : 'Rule-based';
 
   return (
     <div className="analysis-section">
       <div className="analysis-section-header">
         <h4 className="analysis-section-title">Suggestions</h4>
-        <span className="suggestions-source-pill" title="Rule-based suggestions. AI-driven insights can be enabled when Phase 6 ships.">
-          Rule-based
+        <span
+          className={`suggestions-source-pill${aiSuggestions.length > 0 ? ' has-ai' : ''}`}
+          title={aiSuggestions.length > 0
+            ? 'Mix of rule-based heuristics and AI-generated observations.'
+            : 'Rule-based suggestions. Enable AI via the usage widget in the header.'}
+        >
+          {pillLabel}
         </span>
       </div>
 
@@ -57,7 +86,9 @@ export default function SuggestionsSection(props: Props) {
         <div className="analysis-empty">Loading profile data…</div>
       ) : suggestions.length === 0 ? (
         <div className="analysis-empty">
-          Nothing flagged — your portfolio looks reasonably diversified across the rules we check.
+          {aiLoading
+            ? 'Nothing flagged yet — checking for AI insights…'
+            : 'Nothing flagged — your portfolio looks reasonably diversified across the rules we check.'}
         </div>
       ) : (
         <div className="suggestions-list">
