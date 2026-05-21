@@ -2,10 +2,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { AIProvider, CompleteRequest, CompleteResponse } from '../aiProvider.js';
 import { MODELS } from '../pricing.js';
 
-// Minimum chars before we bother attaching cache_control. Anthropic requires
-// at least ~1024 tokens for a cache write to be cheaper than not caching;
-// rough heuristic: 4 chars per token, so 4000+ chars is the floor.
-const CACHE_MIN_CHARS = 4000;
+// Minimum chars before we attach cache_control. Anthropic silently no-ops
+// cache writes below the model's minimum: Sonnet/Opus require ~1024 tokens,
+// Haiku ~2048. Using ~9000 chars (~2250 tokens at 4 chars/token) keeps us
+// safely above the Haiku floor for all tiers.
+const CACHE_MIN_CHARS = 9000;
 
 export class AnthropicProvider implements AIProvider {
   name = 'anthropic';
@@ -40,6 +41,10 @@ export class AnthropicProvider implements AIProvider {
       system: systemBlocks,
       messages: [{ role: 'user', content: req.userContent }],
     });
+
+    if (process.env.AI_DEBUG === '1') {
+      console.log('[anthropic] tier=%s usage=%o', req.model, response.usage);
+    }
 
     const text = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')
