@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ai } from '../api/client';
 import { setSnapshot as setUsageSnapshot } from './aiUsageStore';
-import type { ModelTier } from '../api/types';
 import type { PortfolioPosition } from './portfolioStorage';
 import type { AssetProfile } from '../api/types';
 import {
@@ -10,7 +9,6 @@ import {
 } from './portfolioAnalysis';
 import type { Suggestion } from './portfolioSuggestions';
 
-const MODEL: ModelTier = 'sonnet';
 const MAX_TOKENS = 600;
 
 export interface AiSuggestionsInputs {
@@ -177,7 +175,6 @@ export function useAiPortfolioSuggestions(inputs: AiSuggestionsInputs): AiSugges
 
         const resp = await ai.analyze({
           task: 'portfolioSuggestions',
-          model: MODEL,
           system: SYSTEM,
           userContent: buildPrompt(inputs),
           maxTokens: MAX_TOKENS,

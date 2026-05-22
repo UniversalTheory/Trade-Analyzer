@@ -9,7 +9,6 @@ import type { FundamentalsData } from '../api/types';
 // AI-generated prose. Falls back silently to the rule-based summary if AI is
 // off, blocked, or errors — callers always have a working summary to display.
 
-const MODEL: ModelTier = 'haiku';
 const MAX_TOKENS = 220;
 
 export type AiTradeSummaryState =
@@ -109,7 +108,6 @@ export function useAiTradeSummary(args: Args): AiTradeSummaryState {
 
         const resp = await ai.analyze({
           task: 'recSummary',
-          model: MODEL,
           system: SYSTEM,
           userContent: buildPrompt(args),
           maxTokens: MAX_TOKENS,

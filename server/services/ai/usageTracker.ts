@@ -6,6 +6,9 @@ import { computeCostUsd, type ModelTier, type TokenCounts } from './pricing.js';
 // New tasks can be added without changing this shape.
 export type FeatureToggles = Record<string, boolean>;
 
+// Per-task model overrides. Absence means "use built-in default".
+export type TaskModelOverrides = Record<string, ModelTier>;
+
 interface MonthEntry {
   usd: number;
   calls: number;
@@ -26,6 +29,8 @@ interface UsageState {
   capUsd: number;
   featureToggles: FeatureToggles;
   recentCalls: CallRecord[];
+  taskModels: TaskModelOverrides;
+  globalModelOverride: ModelTier | null;
 }
 
 const DEFAULT_TOGGLES: FeatureToggles = {
@@ -51,6 +56,21 @@ function monthKey(d = new Date()): string {
   return `${y}-${m}`;
 }
 
+const VALID_TIERS: readonly ModelTier[] = ['haiku', 'sonnet', 'opus'];
+
+function isModelTier(v: unknown): v is ModelTier {
+  return typeof v === 'string' && (VALID_TIERS as readonly string[]).includes(v);
+}
+
+function sanitizeTaskModels(raw: unknown): TaskModelOverrides {
+  if (!raw || typeof raw !== 'object') return {};
+  const out: TaskModelOverrides = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (isModelTier(v)) out[k] = v;
+  }
+  return out;
+}
+
 function loadState(): UsageState {
   try {
     const raw = fs.readFileSync(STATE_FILE, 'utf-8');
@@ -61,6 +81,8 @@ function loadState(): UsageState {
       capUsd: typeof parsed.capUsd === 'number' ? parsed.capUsd : defaultCap(),
       featureToggles: { ...DEFAULT_TOGGLES, ...(parsed.featureToggles ?? {}) },
       recentCalls: Array.isArray(parsed.recentCalls) ? parsed.recentCalls.slice(-RECENT_LIMIT) : [],
+      taskModels: sanitizeTaskModels(parsed.taskModels),
+      globalModelOverride: isModelTier(parsed.globalModelOverride) ? parsed.globalModelOverride : null,
     };
   } catch {
     return {
@@ -69,6 +91,8 @@ function loadState(): UsageState {
       capUsd: defaultCap(),
       featureToggles: { ...DEFAULT_TOGGLES },
       recentCalls: [],
+      taskModels: {},
+      globalModelOverride: null,
     };
   }
 }
@@ -104,6 +128,16 @@ export interface UsageSnapshot {
   featureToggles: FeatureToggles;
   recentCalls: CallRecord[];
   monthKey: string;
+  taskModels: TaskModelOverrides;
+  globalModelOverride: ModelTier | null;
+  taskDefaults: Record<string, ModelTier>;
+}
+
+// Lazy-injected to avoid a circular import (aiRouter imports this file).
+let taskDefaultsProvider: () => Record<string, ModelTier> = () => ({});
+
+export function _setTaskDefaultsProvider(fn: () => Record<string, ModelTier>): void {
+  taskDefaultsProvider = fn;
 }
 
 export function getSnapshot(): UsageSnapshot {
@@ -119,7 +153,18 @@ export function getSnapshot(): UsageSnapshot {
     featureToggles: state.featureToggles,
     recentCalls: state.recentCalls.slice().reverse(),
     monthKey: key,
+    taskModels: { ...state.taskModels },
+    globalModelOverride: state.globalModelOverride,
+    taskDefaults: taskDefaultsProvider(),
   };
+}
+
+export function getTaskModelOverride(task: string): ModelTier | undefined {
+  return state.taskModels[task];
+}
+
+export function getGlobalModelOverride(): ModelTier | null {
+  return state.globalModelOverride;
 }
 
 export interface PrecheckResult {
@@ -180,6 +225,27 @@ export function setFeatureToggle(task: string, enabled: boolean): UsageSnapshot 
   return getSnapshot();
 }
 
+// Set or clear a per-task model override. Pass null to revert to built-in default.
+export function setTaskModel(task: string, model: ModelTier | null): UsageSnapshot {
+  const next = { ...state.taskModels };
+  if (model == null) {
+    delete next[task];
+  } else {
+    next[task] = model;
+  }
+  state.taskModels = next;
+  persist();
+  return getSnapshot();
+}
+
+// Set or clear the global model override. When set, it wins over per-task settings
+// (but explicit req.model from a caller still wins over this).
+export function setGlobalModelOverride(model: ModelTier | null): UsageSnapshot {
+  state.globalModelOverride = model;
+  persist();
+  return getSnapshot();
+}
+
 // Test-only hook: reset state to empty (used by smoke tests if needed).
 export function _resetForTests(): void {
   state = {
@@ -188,6 +254,8 @@ export function _resetForTests(): void {
     capUsd: defaultCap(),
     featureToggles: { ...DEFAULT_TOGGLES },
     recentCalls: [],
+    taskModels: {},
+    globalModelOverride: null,
   };
   sessionUsd = 0;
   persist();

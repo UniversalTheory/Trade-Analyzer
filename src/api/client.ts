@@ -92,6 +92,16 @@ export const ai = {
       method: 'POST',
       body: JSON.stringify({ task, enabled }),
     }),
+  setTaskModel: (task: string, model: import('./types').ModelTier | null) =>
+    request<import('./types').AiUsageSnapshot>('/ai/task-model', {
+      method: 'POST',
+      body: JSON.stringify({ task, model }),
+    }),
+  setGlobalOverride: (model: import('./types').ModelTier | null) =>
+    request<import('./types').AiUsageSnapshot>('/ai/global-override', {
+      method: 'POST',
+      body: JSON.stringify({ model }),
+    }),
 };
 
 // Health check

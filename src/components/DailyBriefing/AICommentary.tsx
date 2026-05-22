@@ -28,7 +28,6 @@ type Phase =
   | { kind: 'error'; message: string };
 
 const MAX_TOKENS = 700;
-const DEFAULT_MODEL: ModelTier = 'sonnet';
 
 export default function AICommentary({ refreshKey }: Props) {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
@@ -115,7 +114,6 @@ export default function AICommentary({ refreshKey }: Props) {
 
         const resp = await ai.analyze({
           task: 'briefing',
-          model: DEFAULT_MODEL,
           system,
           userContent,
           maxTokens: MAX_TOKENS,

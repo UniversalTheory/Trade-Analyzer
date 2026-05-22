@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ai } from '../../api/client';
 import { setSnapshot, refresh, useAiUsage } from '../../utils/aiUsageStore';
-import type { CapStatus } from '../../api/types';
+import type { CapStatus, ModelTier } from '../../api/types';
 
 const POLL_MS = 15 * 1000;
 
@@ -10,7 +10,10 @@ const FEATURE_LABELS: Record<string, string> = {
   recSummary: 'Trade-rec summary',
   portfolioSuggestions: 'Portfolio suggestions',
   chat: 'Chat',
+  analyze: 'Generic analyze',
 };
+
+const MODEL_OPTIONS: ModelTier[] = ['haiku', 'sonnet', 'opus'];
 
 function capColor(status: CapStatus): string {
   switch (status) {
@@ -129,7 +132,25 @@ function UsagePanel({ snapshot, now }: { snapshot: NonNullable<ReturnType<typeof
     setSnapshot(next);
   }
 
+  async function changeTaskModel(task: string, val: string) {
+    const model = val === '' ? null : (val as ModelTier);
+    const next = await ai.setTaskModel(task, model);
+    setSnapshot(next);
+  }
+
+  async function changeGlobalOverride(val: string) {
+    const model = val === '' ? null : (val as ModelTier);
+    const next = await ai.setGlobalOverride(model);
+    setSnapshot(next);
+  }
+
   const featureKeys = Object.keys(snapshot.featureToggles);
+  // Show one model row per task we know about — union of built-in defaults and any
+  // user override, so users can still see/clear an override for a task that was
+  // later removed from the built-in defaults map.
+  const modelTaskKeys = Array.from(
+    new Set([...Object.keys(snapshot.taskDefaults), ...Object.keys(snapshot.taskModels)])
+  );
   const recent = snapshot.recentCalls.slice(0, 6);
 
   return (
@@ -185,6 +206,48 @@ function UsagePanel({ snapshot, now }: { snapshot: NonNullable<ReturnType<typeof
             />
           </label>
         ))}
+      </div>
+
+      <div className="usage-panel-models">
+        <div className="usage-panel-label">Models</div>
+        <div className="usage-model-row">
+          <span className="usage-model-row-label">Global override</span>
+          <select
+            className="usage-model-select"
+            value={snapshot.globalModelOverride ?? ''}
+            onChange={e => changeGlobalOverride(e.target.value)}
+          >
+            <option value="">off (per-task)</option>
+            {MODEL_OPTIONS.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </div>
+        {snapshot.globalModelOverride && (
+          <div className="usage-model-note">
+            Global override active — per-task choices below are paused.
+          </div>
+        )}
+        {modelTaskKeys.map(task => {
+          const userChoice = snapshot.taskModels[task];
+          const builtinDefault = snapshot.taskDefaults[task];
+          return (
+            <div key={task} className="usage-model-row">
+              <span className="usage-model-row-label">{FEATURE_LABELS[task] ?? task}</span>
+              <select
+                className="usage-model-select"
+                value={userChoice ?? ''}
+                onChange={e => changeTaskModel(task, e.target.value)}
+                disabled={!!snapshot.globalModelOverride}
+              >
+                <option value="">default{builtinDefault ? ` (${builtinDefault})` : ''}</option>
+                {MODEL_OPTIONS.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+          );
+        })}
       </div>
 
       <div className="usage-panel-recent">

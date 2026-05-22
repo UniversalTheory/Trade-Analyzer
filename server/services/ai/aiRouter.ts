@@ -3,9 +3,17 @@ import type { CompleteRequest, CompleteResponse } from './aiProvider.js';
 import { AnthropicProvider } from './providers/anthropic.js';
 import type { ModelTier } from './pricing.js';
 import { cache } from '../cache.js';
-import { precheck, recordCall, type UsageSnapshot } from './usageTracker.js';
+import {
+  precheck,
+  recordCall,
+  getTaskModelOverride,
+  getGlobalModelOverride,
+  _setTaskDefaultsProvider,
+  type UsageSnapshot,
+} from './usageTracker.js';
 
-// Per-task default model. UI/settings can override per-call.
+// Built-in per-task default model. User settings (taskModels / globalModelOverride
+// in .ai-usage.json) layer on top — see resolveTier below.
 export const TASK_DEFAULT_MODEL: Record<string, ModelTier> = {
   briefing: 'sonnet',
   recSummary: 'haiku',
@@ -13,6 +21,25 @@ export const TASK_DEFAULT_MODEL: Record<string, ModelTier> = {
   chat: 'sonnet',
   analyze: 'sonnet',
 };
+
+// Let the usage tracker include the read-only defaults map in its snapshot
+// without a circular import.
+_setTaskDefaultsProvider(() => ({ ...TASK_DEFAULT_MODEL }));
+
+// Resolve the model tier for a dispatch call. Priority (highest first):
+//   1. explicit req.model (programmatic caller override, e.g. chat "deep dive")
+//   2. global override set in widget ("force all tasks to X")
+//   3. per-task override set in widget
+//   4. built-in TASK_DEFAULT_MODEL[task]
+//   5. fallback 'sonnet'
+function resolveTier(task: string, explicit: ModelTier | undefined): ModelTier {
+  if (explicit) return explicit;
+  const globalOverride = getGlobalModelOverride();
+  if (globalOverride) return globalOverride;
+  const taskOverride = getTaskModelOverride(task);
+  if (taskOverride) return taskOverride;
+  return TASK_DEFAULT_MODEL[task] ?? 'sonnet';
+}
 
 // Per-task TTLCache wrap (skips the provider entirely when content hash matches).
 const TASK_CACHE_TTL_MS: Record<string, number> = {
@@ -88,7 +115,7 @@ export async function dispatch(req: DispatchRequest): Promise<DispatchResponse> 
     throw err;
   }
 
-  const tier: ModelTier = req.model ?? TASK_DEFAULT_MODEL[req.task] ?? 'sonnet';
+  const tier: ModelTier = resolveTier(req.task, req.model);
   const ttl = req.cacheTtlMs ?? TASK_CACHE_TTL_MS[req.task] ?? 0;
   const cacheKey = ttl > 0
     ? `ai:${req.task}:${req.cacheKey ?? hashRequest(tier, req)}`

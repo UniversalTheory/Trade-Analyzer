@@ -19,7 +19,6 @@ export class AnthropicProvider implements AIProvider {
   async complete(req: CompleteRequest): Promise<CompleteResponse> {
     const model = MODELS[req.model];
     const maxTokens = req.maxTokens ?? 1024;
-    const temperature = req.temperature ?? 0.7;
 
     const systemBlocks: Anthropic.TextBlockParam[] = [
       { type: 'text', text: req.system },
@@ -34,13 +33,19 @@ export class AnthropicProvider implements AIProvider {
       systemBlocks.push({ type: 'text', text: req.cacheableContext });
     }
 
-    const response = await this.client.messages.create({
+    // Opus 4.x no longer accepts user-set `temperature` (rejects with
+    // "temperature is deprecated for this model"). Only send it on Haiku/Sonnet.
+    const params: Anthropic.MessageCreateParamsNonStreaming = {
       model: model.id,
       max_tokens: maxTokens,
-      temperature,
       system: systemBlocks,
       messages: [{ role: 'user', content: req.userContent }],
-    });
+    };
+    if (req.model !== 'opus') {
+      params.temperature = req.temperature ?? 0.7;
+    }
+
+    const response = await this.client.messages.create(params);
 
     if (process.env.AI_DEBUG === '1') {
       console.log('[anthropic] tier=%s usage=%o', req.model, response.usage);

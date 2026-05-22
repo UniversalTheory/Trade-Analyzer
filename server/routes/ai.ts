@@ -4,8 +4,20 @@ import {
   getSnapshot,
   setCapUsd,
   setFeatureToggle,
+  setTaskModel,
+  setGlobalModelOverride,
 } from '../services/ai/usageTracker.js';
 import type { ModelTier } from '../services/ai/pricing.js';
+
+const VALID_MODELS = ['haiku', 'sonnet', 'opus'] as const;
+
+function parseModelOrNull(v: unknown): { ok: true; value: ModelTier | null } | { ok: false } {
+  if (v === null) return { ok: true, value: null };
+  if (typeof v === 'string' && (VALID_MODELS as readonly string[]).includes(v)) {
+    return { ok: true, value: v as ModelTier };
+  }
+  return { ok: false };
+}
 
 const router = Router();
 
@@ -32,6 +44,26 @@ router.post('/toggle', (req, res) => {
     return res.status(400).json({ error: 'task (string) and enabled (boolean) required' });
   }
   res.json(setFeatureToggle(task, enabled));
+});
+
+router.post('/task-model', (req, res) => {
+  const task = req.body?.task;
+  if (typeof task !== 'string' || task.length === 0) {
+    return res.status(400).json({ error: 'task (non-empty string) required' });
+  }
+  const parsed = parseModelOrNull(req.body?.model);
+  if (!parsed.ok) {
+    return res.status(400).json({ error: 'model must be haiku, sonnet, opus, or null' });
+  }
+  res.json(setTaskModel(task, parsed.value));
+});
+
+router.post('/global-override', (req, res) => {
+  const parsed = parseModelOrNull(req.body?.model);
+  if (!parsed.ok) {
+    return res.status(400).json({ error: 'model must be haiku, sonnet, opus, or null' });
+  }
+  res.json(setGlobalModelOverride(parsed.value));
 });
 
 router.post('/analyze', async (req, res) => {

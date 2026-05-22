@@ -279,6 +279,9 @@ export interface AiUsageSnapshot {
     cached: boolean;
   }>;
   monthKey: string;
+  taskModels: Record<string, ModelTier>;
+  globalModelOverride: ModelTier | null;
+  taskDefaults: Record<string, ModelTier>;
 }
 
 export interface AnalyzeResponse {
