@@ -292,3 +292,52 @@ export interface AnalyzeResponse {
   modelId: string;
   usage: AiUsageSnapshot;
 }
+
+// ── Chat (IE-3) ──
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatPortfolioSnapshot {
+  positions: Array<{
+    symbol: string;
+    shares: number;
+    avgPrice: number;
+    addedAt?: string;
+  }>;
+  cash: number;
+}
+
+export interface ChatViewContext {
+  activeTab?: string;
+  activeTicker?: string;
+  hasPortfolio?: boolean;
+}
+
+export interface ChatRequest {
+  messages: ChatMessage[];
+  model?: ModelTier;
+  maxTokens?: number;
+  portfolio?: ChatPortfolioSnapshot;
+  view?: ChatViewContext;
+}
+
+export interface ChatToolCallRecord {
+  name: string;
+  input: Record<string, unknown>;
+  resultPreview: string;
+  isError: boolean;
+}
+
+export interface ChatResponse {
+  text: string;
+  toolCalls: ChatToolCallRecord[];
+  costUsd: number;
+  modelTier: ModelTier;
+  modelId: string;
+  usage: AiUsageSnapshot;
+  stopReason: string;
+  iterations: number;
+}

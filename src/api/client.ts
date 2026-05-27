@@ -102,6 +102,11 @@ export const ai = {
       method: 'POST',
       body: JSON.stringify({ model }),
     }),
+  chat: (body: import('./types').ChatRequest) =>
+    request<import('./types').ChatResponse>('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
 
 // Health check

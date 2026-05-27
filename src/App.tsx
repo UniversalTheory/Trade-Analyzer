@@ -6,6 +6,7 @@ import TickerResearch, { type CalcPrefill } from './components/Ticker/TickerRese
 import Portfolio from './components/Portfolio/Portfolio';
 import DailyBriefing from './components/DailyBriefing/DailyBriefing';
 import UsageWidget from './components/UsageWidget/UsageWidget';
+import ChatPanel from './components/AIChat/ChatPanel';
 import { useRevealObserver } from './hooks/useRevealObserver';
 
 type Tab = 'briefing' | 'home' | 'sector' | 'ticker' | 'options' | 'portfolio';
@@ -23,6 +24,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('briefing');
   const [calcPrefill, setCalcPrefill] = useState<CalcPrefill | null>(null);
   const [researchPrefill, setResearchPrefill] = useState<string | null>(null);
+  const [activeTicker, setActiveTicker] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   // Sliding tab indicator
   const navRef = useRef<HTMLElement>(null);
@@ -89,6 +92,15 @@ export default function App() {
               </button>
             ))}
           </nav>
+          <button
+            className={`chat-toggle-btn ${chatOpen ? 'chat-toggle-btn-active' : ''}`}
+            onClick={() => setChatOpen(o => !o)}
+            title="Open AI analyst chat"
+            aria-label="Open AI analyst chat"
+          >
+            <span className="chat-toggle-glyph">✦</span>
+            <span>Chat</span>
+          </button>
           <UsageWidget />
         </div>
       </header>
@@ -108,6 +120,7 @@ export default function App() {
             onAnalyzeInCalculator={handleAnalyzeInCalculator}
             prefillSymbol={researchPrefill}
             onPrefillConsumed={() => setResearchPrefill(null)}
+            onActiveSymbolChange={setActiveTicker}
           />
         </div>
         <div className={activeTab === 'options' ? '' : 'tab-hidden'}>
@@ -120,6 +133,13 @@ export default function App() {
           <Portfolio onShowInResearch={handleShowInResearch} />
         </div>
       </main>
+
+      <ChatPanel
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        activeTab={activeTab}
+        activeTicker={activeTab === 'ticker' ? activeTicker : null}
+      />
     </>
   );
 }

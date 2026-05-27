@@ -35,9 +35,10 @@ interface Props {
   onAnalyzeInCalculator: (prefill: CalcPrefill) => void;
   prefillSymbol?: string | null;
   onPrefillConsumed?: () => void;
+  onActiveSymbolChange?: (symbol: string | null) => void;
 }
 
-export default function TickerResearch({ onAnalyzeInCalculator, prefillSymbol, onPrefillConsumed }: Props) {
+export default function TickerResearch({ onAnalyzeInCalculator, prefillSymbol, onPrefillConsumed, onActiveSymbolChange }: Props) {
   const [symbol, setSymbol] = useState('');
   const [interval, setInterval] = useState<Interval>('1d');
   const [range, setRange] = useState<Range>('3m');
@@ -49,6 +50,10 @@ export default function TickerResearch({ onAnalyzeInCalculator, prefillSymbol, o
     setRange('3m');
     onPrefillConsumed?.();
   }, [prefillSymbol, onPrefillConsumed]);
+
+  useEffect(() => {
+    onActiveSymbolChange?.(symbol || null);
+  }, [symbol, onActiveSymbolChange]);
 
   const {
     data: quote,

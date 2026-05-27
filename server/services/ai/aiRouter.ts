@@ -1,7 +1,12 @@
 import crypto from 'node:crypto';
-import type { CompleteRequest, CompleteResponse } from './aiProvider.js';
+import type {
+  CompleteRequest,
+  CompleteResponse,
+  ChatMessage,
+  ChatToolUse,
+} from './aiProvider.js';
 import { AnthropicProvider } from './providers/anthropic.js';
-import type { ModelTier } from './pricing.js';
+import type { ModelTier, TokenCounts } from './pricing.js';
 import { cache } from '../cache.js';
 import {
   precheck,
@@ -11,6 +16,7 @@ import {
   _setTaskDefaultsProvider,
   type UsageSnapshot,
 } from './usageTracker.js';
+import { getToolDefs, runTool, type ToolContext } from './tools/index.js';
 
 // Built-in per-task default model. User settings (taskModels / globalModelOverride
 // in .ai-usage.json) layer on top — see resolveTier below.
@@ -176,5 +182,152 @@ export async function dispatch(req: DispatchRequest): Promise<DispatchResponse> 
     modelTier: response.tier,
     modelId: response.modelId,
     usage: snapshot,
+  };
+}
+
+// ── Chat (IE-3): multi-turn with tool use ──
+
+export interface ChatDispatchMessage {
+  role: 'user' | 'assistant';
+  content: string;        // user-visible text; assistant content for prior turns is stored as text
+}
+
+export interface ChatToolCallRecord {
+  name: string;
+  input: Record<string, unknown>;
+  resultPreview: string;  // first ~200 chars of result, for transcript display
+  isError: boolean;
+}
+
+export interface ChatDispatchRequest {
+  // Prior conversation, ending with the latest user message. We DO NOT replay
+  // prior tool calls (their results are baked into the assistant text already);
+  // each new user turn starts a fresh tool-use loop.
+  messages: ChatDispatchMessage[];
+  system: string;
+  toolContext: ToolContext;
+  model?: ModelTier;
+  maxTokens?: number;
+  maxToolIterations?: number;  // default 6
+}
+
+export interface ChatDispatchResponse {
+  text: string;
+  toolCalls: ChatToolCallRecord[];
+  costUsd: number;
+  modelTier: ModelTier;
+  modelId: string;
+  usage: UsageSnapshot;
+  stopReason: string;
+  iterations: number;
+}
+
+const DEFAULT_MAX_TOOL_ITERATIONS = 6;
+
+function addTokens(a: TokenCounts, b: TokenCounts): TokenCounts {
+  return {
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+    cacheReadTokens: a.cacheReadTokens + b.cacheReadTokens,
+    cacheWriteTokens: a.cacheWriteTokens + b.cacheWriteTokens,
+  };
+}
+
+export async function dispatchChat(req: ChatDispatchRequest): Promise<ChatDispatchResponse> {
+  if (!isAiConfigured()) {
+    throw new Error('AI not configured');
+  }
+  const task = 'chat';
+  const pre = precheck(task);
+  if (!pre.allowed) {
+    const err = new Error(pre.reason ?? 'ai_blocked');
+    (err as Error & { code?: string; snapshot?: UsageSnapshot }).code = pre.reason;
+    (err as Error & { snapshot?: UsageSnapshot }).snapshot = pre.snapshot;
+    throw err;
+  }
+
+  const tier: ModelTier = resolveTier(task, req.model);
+  const provider = getAnthropic();
+  const tools = getToolDefs();
+  const maxIter = req.maxToolIterations ?? DEFAULT_MAX_TOOL_ITERATIONS;
+  const maxTokens = req.maxTokens ?? 1500;
+
+  // Seed the messages list from the client's prior conversation. Each prior
+  // assistant turn is sent as a single text block; we don't re-replay tool_use
+  // blocks (the model already produced text reflecting their results).
+  const messages: ChatMessage[] = req.messages.map((m): ChatMessage => {
+    if (m.role === 'user') return { role: 'user', content: m.content };
+    return { role: 'assistant', content: { type: 'mixed', text: m.content, toolUses: [] } };
+  });
+
+  let totalTokens: TokenCounts = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
+  const toolCalls: ChatToolCallRecord[] = [];
+  let lastText = '';
+  let lastStopReason = 'end_turn';
+  let modelId = '';
+  let iterations = 0;
+
+  for (let i = 0; i < maxIter; i++) {
+    iterations++;
+    const resp = await provider.chat({
+      model: tier,
+      system: req.system,
+      messages,
+      tools,
+      maxTokens,
+    });
+    totalTokens = addTokens(totalTokens, resp.tokens);
+    lastText = resp.text;
+    lastStopReason = resp.stopReason;
+    modelId = resp.modelId;
+
+    if (resp.stopReason !== 'tool_use' || resp.toolUses.length === 0) {
+      break;
+    }
+
+    // Append the assistant turn (text + tool_use blocks), then run the tools
+    // and feed results back as a single user turn.
+    messages.push({
+      role: 'assistant',
+      content: { type: 'mixed', text: resp.text, toolUses: resp.toolUses },
+    });
+
+    const toolResults = await Promise.all(resp.toolUses.map(async (tu: ChatToolUse) => {
+      const out = await runTool(tu.name, tu.input, req.toolContext);
+      toolCalls.push({
+        name: tu.name,
+        input: tu.input,
+        resultPreview: out.content.slice(0, 200),
+        isError: !out.ok,
+      });
+      return {
+        toolUseId: tu.id,
+        content: out.content,
+        isError: !out.ok ? true : undefined,
+      };
+    }));
+
+    messages.push({
+      role: 'user',
+      content: { type: 'tool_result', toolResults },
+    });
+  }
+
+  const { costUsd, snapshot } = recordCall({
+    task,
+    model: tier,
+    tokens: totalTokens,
+    cached: false,
+  });
+
+  return {
+    text: lastText,
+    toolCalls,
+    costUsd,
+    modelTier: tier,
+    modelId,
+    usage: snapshot,
+    stopReason: lastStopReason,
+    iterations,
   };
 }
