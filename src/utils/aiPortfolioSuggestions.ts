@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ai } from '../api/client';
 import { setSnapshot as setUsageSnapshot } from './aiUsageStore';
 import type { PortfolioPosition } from './portfolioStorage';
-import type { AssetProfile } from '../api/types';
+import type { AssetProfile, FundData } from '../api/types';
 import {
   computeAllocation,
   computeConcentration,
@@ -15,6 +15,10 @@ export interface AiSuggestionsInputs {
   positions: PortfolioPosition[];
   priceBySymbol: Record<string, number | undefined>;
   profileBySymbol: Record<string, AssetProfile | undefined>;
+  // Optional per-fund sector data. When present, the sector mix in the prompt
+  // is looked through ETFs/funds to their underlying sectors (same see-through
+  // as the rule engine), so the AI reasons about real sector exposure.
+  fundDataBySymbol?: Record<string, FundData | undefined>;
   cash: number;
   // Existing rule-based titles so the AI doesn't restate them.
   ruleBasedTitles: string[];
@@ -75,7 +79,7 @@ function parseSuggestions(text: string): Suggestion[] {
 }
 
 function buildPrompt(inputs: AiSuggestionsInputs): string {
-  const { positions, priceBySymbol, profileBySymbol, cash } = inputs;
+  const { positions, priceBySymbol, profileBySymbol, fundDataBySymbol, cash } = inputs;
   const lines: string[] = [];
 
   // Holdings with weight + sector
@@ -101,9 +105,9 @@ function buildPrompt(inputs: AiSuggestionsInputs): string {
   }
 
   // Allocations
-  const sectorSlices = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'sector');
-  const assetSlices = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'assetClass');
-  const geoSlices = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'geography');
+  const sectorSlices = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'sector', fundDataBySymbol);
+  const assetSlices = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'assetClass', fundDataBySymbol);
+  const geoSlices = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'geography', fundDataBySymbol);
 
   if (sectorSlices.length > 0) {
     lines.push('');
@@ -136,12 +140,22 @@ export function useAiPortfolioSuggestions(inputs: AiSuggestionsInputs): AiSugges
   const [state, setState] = useState<AiSuggestionsState>({ kind: 'idle' });
   const reqId = useRef(0);
 
+  // Which fund symbols have resolved sector see-through data. Folded into the
+  // fingerprint so the AI call refires once fund data lands (the prompt's sector
+  // mix changes from opaque ETF/Fund to looked-through sectors).
+  const fundSeeThroughKey = Object.entries(inputs.fundDataBySymbol ?? {})
+    .filter(([, fd]) => (fd?.sectorWeightings?.length ?? 0) > 0)
+    .map(([sym]) => sym)
+    .sort()
+    .join(',');
+
   // Fingerprint so identical re-renders don't refire.
   const fingerprint = [
     inputs.positions.length,
     inputs.cash.toFixed(0),
     inputs.positions.map(p => `${p.symbol}:${p.shares}`).join(','),
     Object.entries(inputs.priceBySymbol).filter(([, v]) => v != null).map(([k, v]) => `${k}=${v?.toFixed(2)}`).join(','),
+    fundSeeThroughKey,
     inputs.ruleBasedTitles.join('|'),
   ].join('||');
 

@@ -86,6 +86,7 @@ export default function AnalysisCard(props: Props) {
             positions={props.positions}
             priceBySymbol={props.priceBySymbol}
             profileBySymbol={props.profileBySymbol}
+            fundDataBySymbol={props.fundDataBySymbol}
             cash={props.cash}
             profileLoading={props.profileLoading}
             someProfileMissing={props.someProfileMissing}

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { PortfolioPosition } from '../../utils/portfolioStorage';
-import type { AssetProfile } from '../../api/types';
+import type { AssetProfile, FundData } from '../../api/types';
 import {
   computeSuggestions,
   type Suggestion,
@@ -12,6 +12,7 @@ interface Props {
   positions: PortfolioPosition[];
   priceBySymbol: Record<string, number | undefined>;
   profileBySymbol: Record<string, AssetProfile | undefined>;
+  fundDataBySymbol: Record<string, FundData | undefined>;
   cash: number;
   profileLoading: boolean;
   someProfileMissing: boolean;
@@ -35,15 +36,17 @@ export default function SuggestionsSection(props: Props) {
       positions: props.positions,
       priceBySymbol: props.priceBySymbol,
       profileBySymbol: props.profileBySymbol,
+      fundDataBySymbol: props.fundDataBySymbol,
       cash: props.cash,
     }),
-    [props.positions, props.priceBySymbol, props.profileBySymbol, props.cash],
+    [props.positions, props.priceBySymbol, props.profileBySymbol, props.fundDataBySymbol, props.cash],
   );
 
   const aiState = useAiPortfolioSuggestions({
     positions: props.positions,
     priceBySymbol: props.priceBySymbol,
     profileBySymbol: props.profileBySymbol,
+    fundDataBySymbol: props.fundDataBySymbol,
     cash: props.cash,
     ruleBasedTitles: ruleSuggestions.map(s => s.title),
   });

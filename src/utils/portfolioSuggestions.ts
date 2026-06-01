@@ -4,7 +4,7 @@
 // adding suggestions with source='ai' to the same array — no UI changes needed.
 
 import type { PortfolioPosition } from './portfolioStorage';
-import type { AssetProfile } from '../api/types';
+import type { AssetProfile, FundData } from '../api/types';
 import {
   computeAllocation,
   computeConcentration,
@@ -36,6 +36,13 @@ export interface SuggestionInputs {
   priceBySymbol: Record<string, number | undefined>;
   profileBySymbol: Record<string, AssetProfile | undefined>;
   cash: number;
+  // Optional per-fund sector data. When present, ETFs/funds are "looked
+  // through" to their underlying sectors (same see-through used by the
+  // Allocation donut), so sector rules reason about real exposure instead of
+  // an opaque ETF/Fund bucket. The >40% opaque-share guard below then reads
+  // the post-see-through residual (bond sleeves / unresolved funds) — equity
+  // funds dissolve into sectors and stop triggering suppression.
+  fundDataBySymbol?: Record<string, FundData | undefined>;
 }
 
 // ── Reference data ───────────────────────────────────────────────────────
@@ -102,13 +109,16 @@ const US_DOMINANT_PCT            = 0.90; // US >90% triggers geography gap
 // ── Engine ───────────────────────────────────────────────────────────────
 
 export function computeSuggestions(inputs: SuggestionInputs): Suggestion[] {
-  const { positions, priceBySymbol, profileBySymbol, cash } = inputs;
+  const { positions, priceBySymbol, profileBySymbol, cash, fundDataBySymbol } = inputs;
   const out: Suggestion[] = [];
 
-  // Pre-compute the breakdowns once.
-  const sectorSlices    = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'sector');
-  const assetClass      = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'assetClass');
-  const geography       = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'geography');
+  // Pre-compute the breakdowns once. Fund see-through only affects the sector
+  // dimension (Yahoo gives no reliable fund geography, and a fund stays in the
+  // ETF/Fund asset class regardless) — passing it to all three keeps the calls
+  // consistent and future-proof.
+  const sectorSlices    = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'sector', fundDataBySymbol);
+  const assetClass      = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'assetClass', fundDataBySymbol);
+  const geography       = computeAllocation(positions, priceBySymbol, profileBySymbol, cash, 'geography', fundDataBySymbol);
   const concentration   = computeConcentration(positions, priceBySymbol);
 
   if (concentration.count === 0) return out; // nothing priced yet
