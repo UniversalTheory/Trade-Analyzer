@@ -17,8 +17,14 @@ export interface AllocationSlice {
 
 export type AssetClass = 'Stock' | 'ETF / Fund' | 'Crypto' | 'Cash' | 'Other';
 
-export function classifyAssetClass(symbol: string, profile: AssetProfile | undefined): AssetClass {
+export function classifyAssetClass(
+  symbol: string,
+  profile: AssetProfile | undefined,
+  positionType?: PortfolioPosition['type'],
+): AssetClass {
   if (/-USD$/i.test(symbol)) return 'Crypto';
+  // A fund position is authoritative — don't depend on the profile fetch landing.
+  if (positionType === 'fund') return 'ETF / Fund';
   // Fund profile fields are only populated for ETFs/mutual funds.
   if (profile?.fundFamily || profile?.legalType || profile?.fundCategory) return 'ETF / Fund';
   if (profile?.sector || profile?.industry) return 'Stock';
@@ -84,6 +90,7 @@ interface PositionView {
   symbol: string;
   marketValue: number;
   profile: AssetProfile | undefined;
+  type: PortfolioPosition['type'];
 }
 
 function gatherPositionViews(
@@ -99,6 +106,7 @@ function gatherPositionViews(
       symbol: p.symbol,
       marketValue: p.shares * price,
       profile: profileBySymbol[p.symbol],
+      type: p.type,
     });
   }
   return out;
@@ -117,18 +125,20 @@ export function computeAllocation(
   for (const v of views) {
     let label: string;
     if (dimension === 'sector') {
-      if (v.profile?.sector) {
+      // Funds don't get a single sector — bucket them as ETF / Fund even when a
+      // (company-style) sector somehow leaks through on the profile.
+      if (v.type !== 'fund' && v.profile?.sector) {
         label = v.profile.sector;
       } else {
         // Stocks usually have a sector; ETFs and crypto don't. Bucket them
         // by asset class so they don't all merge into "Unknown".
-        const ac = classifyAssetClass(v.symbol, v.profile);
+        const ac = classifyAssetClass(v.symbol, v.profile, v.type);
         label = ac === 'ETF / Fund' || ac === 'Crypto' ? ac : 'Unknown';
       }
     } else if (dimension === 'assetClass') {
-      label = classifyAssetClass(v.symbol, v.profile);
+      label = classifyAssetClass(v.symbol, v.profile, v.type);
     } else {
-      const ac = classifyAssetClass(v.symbol, v.profile);
+      const ac = classifyAssetClass(v.symbol, v.profile, v.type);
       label = classifyGeography(v.symbol, ac, v.profile);
     }
     buckets[label] = (buckets[label] || 0) + v.marketValue;

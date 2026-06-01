@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { StockPosition } from '../../utils/portfolioStorage';
+import type { StockPosition, FundPosition } from '../../utils/portfolioStorage';
 
 export interface PositionEdit {
   shares: number;
@@ -8,7 +8,7 @@ export interface PositionEdit {
 }
 
 interface Props {
-  position: StockPosition;
+  position: StockPosition | FundPosition;
   onSave: (id: string, patch: PositionEdit) => void;
   onCancel: () => void;
 }

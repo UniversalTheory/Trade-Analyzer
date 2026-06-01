@@ -48,7 +48,7 @@ export default function PortfolioTable({ positions, quotes, onRemove, onUpdate, 
       </div>
 
       {positions.map(p => {
-        if (editingId === p.id && p.type === 'stock') {
+        if (editingId === p.id && (p.type === 'stock' || p.type === 'fund')) {
           return (
             <EditPositionRow
               key={p.id}
@@ -83,7 +83,19 @@ export default function PortfolioTable({ positions, quotes, onRemove, onUpdate, 
               : undefined}
           >
             <div className="global-row-name">
-              <span className="global-row-label">{p.symbol}</span>
+              <span className="portfolio-row-label-line">
+                <span className="global-row-label">{p.symbol}</span>
+                {p.type === 'fund' && (
+                  <span
+                    className={`portfolio-fund-badge portfolio-fund-badge--${p.fundKind}`}
+                    title={p.fundKind === 'mutual'
+                      ? 'Mutual fund — priced at daily NAV'
+                      : 'Exchange-traded fund'}
+                  >
+                    {p.fundKind === 'mutual' ? 'FUND' : 'ETF'}
+                  </span>
+                )}
+              </span>
               {quote?.name && <span className="global-row-sub">{quote.name}</span>}
             </div>
 

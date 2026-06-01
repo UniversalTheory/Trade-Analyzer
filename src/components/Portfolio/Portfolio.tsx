@@ -10,7 +10,7 @@ import {
   loadPortfolio,
   savePortfolio,
   type PortfolioState,
-  type StockPosition,
+  type PortfolioPosition,
 } from '../../utils/portfolioStorage';
 import {
   computePortfolioTotals,
@@ -102,6 +102,32 @@ export default function Portfolio({ onShowInResearch }: Props) {
     return () => clearInterval(id);
   }, [fetchQuotes, symbolsKey, state.positions.length]);
 
+  // Backfill: positions added before fund support are stored as 'stock'. Once a
+  // quote reveals one is actually an ETF/mutual fund, upgrade it in place
+  // (preserving id) so it gets the fund badge + authoritative allocation type.
+  // Idempotent: only ever stock → fund, so it settles after the first quote load.
+  useEffect(() => {
+    setState(s => {
+      let changed = false;
+      const next = s.positions.map((p): PortfolioPosition => {
+        if (p.type !== 'stock') return p;
+        const qt = quotes[p.symbol]?.quoteType;
+        if (qt !== 'ETF' && qt !== 'MUTUALFUND') return p;
+        changed = true;
+        return {
+          id: p.id,
+          type: 'fund',
+          symbol: p.symbol,
+          shares: p.shares,
+          avgPrice: p.avgPrice,
+          addedAt: p.addedAt,
+          fundKind: qt === 'ETF' ? 'etf' : 'mutual',
+        };
+      });
+      return changed ? { ...s, positions: next } : s;
+    });
+  }, [quotes]);
+
   // Fetch profile (sector, country, fund category) for any symbols missing it.
   // Profile data is essentially static; we fetch once per symbol per session.
   useEffect(() => {
@@ -172,7 +198,7 @@ export default function Portfolio({ onShowInResearch }: Props) {
     return () => { cancelled = true; };
   }, [analysisExpanded, spyHistory]);
 
-  function handleAdd(position: StockPosition, initialQuote: QuoteData) {
+  function handleAdd(position: PortfolioPosition, initialQuote: QuoteData) {
     setState(s => ({ ...s, positions: [...s.positions, position] }));
     setQuotes(prev => ({ ...prev, [position.symbol]: initialQuote }));
   }
@@ -181,7 +207,7 @@ export default function Portfolio({ onShowInResearch }: Props) {
     setState(s => ({
       ...s,
       positions: s.positions.map(p =>
-        p.id === id && p.type === 'stock'
+        p.id === id && (p.type === 'stock' || p.type === 'fund')
           ? { ...p, shares: patch.shares, avgPrice: patch.avgPrice, addedAt: patch.addedAt }
           : p,
       ),

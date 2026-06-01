@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { ticker } from '../../api/client';
-import { newStockPosition, type StockPosition } from '../../utils/portfolioStorage';
+import {
+  newStockPosition,
+  newFundPosition,
+  type PortfolioPosition,
+} from '../../utils/portfolioStorage';
 import type { QuoteData } from '../../api/types';
 
 interface Props {
   existingSymbols: string[];
-  onAdd: (position: StockPosition, initialQuote: QuoteData) => void;
+  onAdd: (position: PortfolioPosition, initialQuote: QuoteData) => void;
 }
 
 function todayISO(): string {
@@ -45,7 +49,14 @@ export default function AddPositionForm({ existingSymbols, onAdd }: Props) {
     setError(null);
     try {
       const quote = await ticker.getQuote(sym);
-      const position = newStockPosition(sym, sharesNum, priceNum, dateClean);
+      // Auto-detect the instrument type from the quote — ETFs and mutual funds
+      // become fund positions (mutual funds priced at daily NAV); everything
+      // else is a stock. Avoids the user having to classify the symbol.
+      const qt = quote.quoteType;
+      const position: PortfolioPosition =
+        qt === 'ETF' || qt === 'MUTUALFUND'
+          ? newFundPosition(sym, sharesNum, priceNum, qt === 'ETF' ? 'etf' : 'mutual', dateClean)
+          : newStockPosition(sym, sharesNum, priceNum, dateClean);
       onAdd(position, quote);
       reset();
     } catch {
@@ -66,7 +77,7 @@ export default function AddPositionForm({ existingSymbols, onAdd }: Props) {
         value={symbol}
         onChange={e => { setSymbol(e.target.value.toUpperCase()); setError(null); }}
         onKeyDown={handleKey}
-        placeholder="Symbol (e.g. AAPL, BTC-USD)"
+        placeholder="Symbol (stock, ETF, or fund)"
         maxLength={12}
         disabled={submitting}
         spellCheck={false}

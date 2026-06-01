@@ -10,8 +10,20 @@ export interface StockPosition {
   addedAt: string; // ISO date
 }
 
+// ETFs and mutual funds. Same shape as a stock (shares × price), but priced at
+// NAV for mutual funds (no intraday movement). fundKind drives display only.
+export interface FundPosition {
+  id: string;
+  type: 'fund';
+  symbol: string;
+  shares: number;
+  avgPrice: number;
+  addedAt: string; // ISO date
+  fundKind: 'etf' | 'mutual';
+}
+
 // Union so future option positions can be added without breaking existing code.
-export type PortfolioPosition = StockPosition;
+export type PortfolioPosition = StockPosition | FundPosition;
 
 export interface PortfolioState {
   version: 1;
@@ -58,5 +70,23 @@ export function newStockPosition(
     shares,
     avgPrice,
     addedAt: addedAt || new Date().toISOString().slice(0, 10),
+  };
+}
+
+export function newFundPosition(
+  symbol: string,
+  shares: number,
+  avgPrice: number,
+  fundKind: 'etf' | 'mutual',
+  addedAt?: string,
+): FundPosition {
+  return {
+    id: crypto.randomUUID(),
+    type: 'fund',
+    symbol: symbol.toUpperCase(),
+    shares,
+    avgPrice,
+    addedAt: addedAt || new Date().toISOString().slice(0, 10),
+    fundKind,
   };
 }
