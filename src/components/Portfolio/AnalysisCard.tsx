@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { PortfolioPosition } from '../../utils/portfolioStorage';
-import type { AssetProfile, PriceBar } from '../../api/types';
+import type { AssetProfile, PriceBar, FundData } from '../../api/types';
 import { computeConcentration } from '../../utils/portfolioAnalysis';
 import type { LookbackId } from '../../utils/portfolioRisk';
 import AllocationSection from './AllocationSection';
@@ -12,6 +12,7 @@ interface Props {
   positions: PortfolioPosition[];
   priceBySymbol: Record<string, number | undefined>;
   profileBySymbol: Record<string, AssetProfile | undefined>;
+  fundDataBySymbol: Record<string, FundData | undefined>;
   historyBySymbol: Record<string, PriceBar[] | undefined>;
   spyHistory: PriceBar[] | undefined;
   cash: number;
@@ -61,6 +62,7 @@ export default function AnalysisCard(props: Props) {
             positions={props.positions}
             priceBySymbol={props.priceBySymbol}
             profileBySymbol={props.profileBySymbol}
+            fundDataBySymbol={props.fundDataBySymbol}
             cash={props.cash}
             profileLoading={props.profileLoading}
             someProfileMissing={props.someProfileMissing}

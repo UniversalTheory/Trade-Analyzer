@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import type { PortfolioPosition } from '../../utils/portfolioStorage';
-import type { AssetProfile } from '../../api/types';
+import type { AssetProfile, FundData } from '../../api/types';
 import {
   computeAllocation,
   assignColors,
@@ -14,6 +14,7 @@ interface Props {
   positions: PortfolioPosition[];
   priceBySymbol: Record<string, number | undefined>;
   profileBySymbol: Record<string, AssetProfile | undefined>;
+  fundDataBySymbol: Record<string, FundData | undefined>;
   cash: number;
   profileLoading: boolean;
   someProfileMissing: boolean;
@@ -29,6 +30,7 @@ export default function AllocationSection({
   positions,
   priceBySymbol,
   profileBySymbol,
+  fundDataBySymbol,
   cash,
   profileLoading,
   someProfileMissing,
@@ -36,9 +38,12 @@ export default function AllocationSection({
   const [dimension, setDimension] = useState<AllocationDimension>('sector');
 
   const slices: AllocationSlice[] = useMemo(
-    () => computeAllocation(positions, priceBySymbol, profileBySymbol, cash, dimension),
-    [positions, priceBySymbol, profileBySymbol, cash, dimension],
+    () => computeAllocation(positions, priceBySymbol, profileBySymbol, cash, dimension, fundDataBySymbol),
+    [positions, priceBySymbol, profileBySymbol, fundDataBySymbol, cash, dimension],
   );
+
+  const fundCount = positions.filter(p => p.type === 'fund').length;
+  const someFundDataMissing = positions.some(p => p.type === 'fund' && !(p.symbol in fundDataBySymbol));
 
   const colorMap = useMemo(() => assignColors(slices.map(s => s.label)), [slices]);
   const colored = slices.map(s => ({ ...s, color: colorMap[s.label] }));
@@ -124,9 +129,11 @@ export default function AllocationSection({
         </div>
       )}
 
-      {dimension === 'sector' && slices.some(s => s.label === 'ETF / Fund') && (
+      {dimension === 'sector' && fundCount > 0 && (
         <div className="analysis-disclosure">
-          ETFs are shown as a single <em>ETF / Fund</em> slice here — their underlying sector mix isn't broken out yet.
+          {someFundDataMissing
+            ? 'Resolving fund holdings to underlying sectors…'
+            : <>Fund holdings are distributed across their underlying sectors. Any unclassified portion (e.g. a bond sleeve, or funds missing sector data) is grouped under <em>ETF / Fund</em>.</>}
         </div>
       )}
       {dimension === 'geography' && slices.length > 0 && (

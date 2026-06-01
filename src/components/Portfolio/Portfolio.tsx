@@ -5,7 +5,7 @@ import type { PositionEdit } from './EditPositionRow';
 import AnalysisCard from './AnalysisCard';
 import { AnimatedNumber } from '../AnimatedNumber';
 import { ticker } from '../../api/client';
-import type { QuoteData, PriceBar, AssetProfile } from '../../api/types';
+import type { QuoteData, PriceBar, AssetProfile, FundData } from '../../api/types';
 import {
   loadPortfolio,
   savePortfolio,
@@ -52,6 +52,7 @@ export default function Portfolio({ onShowInResearch }: Props) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [profiles, setProfiles] = useState<Record<string, AssetProfile>>({});
   const [profileLoading, setProfileLoading] = useState(false);
+  const [fundData, setFundData] = useState<Record<string, FundData>>({});
   const [spyHistory, setSpyHistory] = useState<PriceBar[] | undefined>(undefined);
   const [analysisExpanded, setAnalysisExpanded] = useState(false);
   const [riskLookback, setRiskLookback] = useState<LookbackId>('1y');
@@ -198,6 +199,35 @@ export default function Portfolio({ onShowInResearch }: Props) {
     return () => { cancelled = true; };
   }, [analysisExpanded, spyHistory]);
 
+  // Fund holdings/sector weightings, fetched once per fund symbol when the
+  // Analysis card is open — used to look ETFs through to their underlying
+  // sectors in the Allocation chart. Failures store an empty record so we don't
+  // re-fetch and the chart falls back to the opaque ETF / Fund bucket.
+  useEffect(() => {
+    if (!analysisExpanded) return;
+    const missing = state.positions
+      .filter(p => p.type === 'fund' && !(p.symbol in fundData))
+      .map(p => p.symbol);
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    Promise.all(
+      missing.map(sym =>
+        ticker.getFund(sym)
+          .then(fd => ({ sym, fd }))
+          .catch(() => ({ sym, fd: { symbol: sym, holdings: [], sectorWeightings: [] } as FundData })),
+      ),
+    ).then(results => {
+      if (cancelled) return;
+      setFundData(prev => {
+        const next = { ...prev };
+        for (const r of results) next[r.sym] = r.fd;
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+  }, [analysisExpanded, symbolsKey, fundData, state.positions]);
+
   function handleAdd(position: PortfolioPosition, initialQuote: QuoteData) {
     setState(s => ({ ...s, positions: [...s.positions, position] }));
     setQuotes(prev => ({ ...prev, [position.symbol]: initialQuote }));
@@ -230,6 +260,11 @@ export default function Portfolio({ onShowInResearch }: Props) {
           return copy;
         });
         setProfiles(prev => {
+          const copy = { ...prev };
+          delete copy[removed.symbol];
+          return copy;
+        });
+        setFundData(prev => {
           const copy = { ...prev };
           delete copy[removed.symbol];
           return copy;
@@ -444,6 +479,7 @@ export default function Portfolio({ onShowInResearch }: Props) {
         positions={state.positions}
         priceBySymbol={priceBySymbol}
         profileBySymbol={profiles}
+        fundDataBySymbol={fundData}
         historyBySymbol={history}
         spyHistory={spyHistory}
         cash={state.cash}

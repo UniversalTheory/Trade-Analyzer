@@ -3,7 +3,7 @@
 // slices and concentration metrics.
 
 import type { PortfolioPosition } from './portfolioStorage';
-import type { AssetProfile } from '../api/types';
+import type { AssetProfile, FundData } from '../api/types';
 
 export type AllocationDimension = 'sector' | 'assetClass' | 'geography';
 
@@ -112,30 +112,61 @@ function gatherPositionViews(
   return out;
 }
 
+// Distribute one position's market value into sector buckets. Funds with sector
+// weightings are "looked through" — split across their underlying sectors, with
+// any unclassified remainder (e.g. a bond sleeve, or rounding) grouped under
+// ETF / Fund. Funds without data fall back to the opaque ETF / Fund bucket.
+function addSectorBuckets(
+  buckets: Record<string, number>,
+  v: PositionView,
+  fundData: FundData | undefined,
+): void {
+  const weights = fundData?.sectorWeightings;
+  if (v.type === 'fund' && weights && weights.length > 0) {
+    let distributed = 0;
+    for (const w of weights) {
+      const amt = v.marketValue * w.weight;
+      if (amt <= 0) continue;
+      buckets[w.sector] = (buckets[w.sector] || 0) + amt;
+      distributed += amt;
+    }
+    // Remainder beyond ~0.5% (bonds, cash sleeve, rounding) stays opaque.
+    const residual = v.marketValue - distributed;
+    if (residual > v.marketValue * 0.005) {
+      buckets['ETF / Fund'] = (buckets['ETF / Fund'] || 0) + residual;
+    }
+    return;
+  }
+
+  // Non-fund with a real sector → that sector. Funds without weightings, crypto,
+  // and sector-less holdings → asset-class bucket so they don't merge to Unknown.
+  if (v.type !== 'fund' && v.profile?.sector) {
+    buckets[v.profile.sector] = (buckets[v.profile.sector] || 0) + v.marketValue;
+    return;
+  }
+  const ac = classifyAssetClass(v.symbol, v.profile, v.type);
+  const label = ac === 'ETF / Fund' || ac === 'Crypto' ? ac : 'Unknown';
+  buckets[label] = (buckets[label] || 0) + v.marketValue;
+}
+
 export function computeAllocation(
   positions: PortfolioPosition[],
   priceBySymbol: Record<string, number | undefined>,
   profileBySymbol: Record<string, AssetProfile | undefined>,
   cash: number,
   dimension: AllocationDimension,
+  fundDataBySymbol?: Record<string, FundData | undefined>,
 ): AllocationSlice[] {
   const views = gatherPositionViews(positions, priceBySymbol, profileBySymbol);
   const buckets: Record<string, number> = {};
 
   for (const v of views) {
-    let label: string;
     if (dimension === 'sector') {
-      // Funds don't get a single sector — bucket them as ETF / Fund even when a
-      // (company-style) sector somehow leaks through on the profile.
-      if (v.type !== 'fund' && v.profile?.sector) {
-        label = v.profile.sector;
-      } else {
-        // Stocks usually have a sector; ETFs and crypto don't. Bucket them
-        // by asset class so they don't all merge into "Unknown".
-        const ac = classifyAssetClass(v.symbol, v.profile, v.type);
-        label = ac === 'ETF / Fund' || ac === 'Crypto' ? ac : 'Unknown';
-      }
-    } else if (dimension === 'assetClass') {
+      addSectorBuckets(buckets, v, fundDataBySymbol?.[v.symbol]);
+      continue;
+    }
+    let label: string;
+    if (dimension === 'assetClass') {
       label = classifyAssetClass(v.symbol, v.profile, v.type);
     } else {
       const ac = classifyAssetClass(v.symbol, v.profile, v.type);
