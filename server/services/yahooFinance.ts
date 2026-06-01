@@ -252,13 +252,15 @@ export class YahooFinanceProvider implements MarketDataProvider {
   }
 
   async searchSymbol(query: string): Promise<SymbolSearchResult[]> {
+    // validateResult:false — Yahoo's search response shape drifts from
+    // yahoo-finance2's zod schema and otherwise throws FailedYahooValidationError.
     const result = await yahooFinance.search(query, {
       quotesCount: 10,
       newsCount: 0,
-    });
+    }, { validateResult: false });
 
     return (result.quotes || [])
-      .filter((q: any) => q.symbol && (q.quoteType === 'EQUITY' || q.quoteType === 'ETF'))
+      .filter((q: any) => q.symbol && (q.quoteType === 'EQUITY' || q.quoteType === 'ETF' || q.quoteType === 'MUTUALFUND'))
       .map((q: any) => ({
         symbol: q.symbol,
         name: q.shortname || q.longname || q.symbol,

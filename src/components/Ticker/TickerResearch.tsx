@@ -8,6 +8,7 @@ import type {
   OptionsChainData,
   AssetProfile,
   FundamentalsData,
+  FundData,
   FilingsData,
   EarningsData,
   DeepFundamentals,
@@ -17,6 +18,9 @@ import SymbolSearch from './SymbolSearch';
 import TickerQuoteCard from './TickerQuoteCard';
 import AssetProfileCard from './AssetProfile';
 import FundamentalsCard from './FundamentalsCard';
+import FundOverview from './FundOverview';
+import FundHoldings from './FundHoldings';
+import FundWeightings from './FundWeightings';
 import FilingsCard from './FilingsCard';
 import EarningsCard from './EarningsCard';
 import PriceChart, { INTERVAL_CONFIG, type Interval, type Range } from './PriceChart';
@@ -63,6 +67,21 @@ export default function TickerResearch({ onAnalyzeInCalculator, prefillSymbol, o
     () => tickerApi.getQuote(symbol),
     [symbol],
     { autoFetch: !!symbol },
+  );
+
+  // ETFs and mutual funds get the fund-specific cards and drop the equity-only
+  // research (fundamentals/filings/earnings). ETFs keep options + trade-recs
+  // since they trade with options chains; mutual funds don't, so those hide only
+  // for mutual funds.
+  const isFund = quote?.quoteType === 'ETF' || quote?.quoteType === 'MUTUALFUND';
+  const isMutualFund = quote?.quoteType === 'MUTUALFUND';
+
+  // Gated on isFund: the fetch fires once the quote resolves as a fund (useApi
+  // re-runs when autoFetch flips true), so equity lookups skip the extra call.
+  const { data: fund } = useApi<FundData>(
+    () => tickerApi.getFund(symbol),
+    [symbol],
+    { autoFetch: !!symbol && isFund },
   );
 
   const { data: profile } = useApi<AssetProfile>(
@@ -167,7 +186,7 @@ export default function TickerResearch({ onAnalyzeInCalculator, prefillSymbol, o
           <div className="ticker-empty-icon">⌕</div>
           <div className="ticker-empty-title">Ticker Research</div>
           <div className="ticker-empty-desc">
-            Search any stock, ETF, or index to view price charts, technical analysis, options chain, and trade recommendations.
+            Search any stock, ETF, mutual fund, or index to view price charts, technical analysis, holdings, and trade recommendations.
           </div>
         </div>
       )}
@@ -191,11 +210,19 @@ export default function TickerResearch({ onAnalyzeInCalculator, prefillSymbol, o
 
           {profile && <AssetProfileCard profile={profile} />}
 
-          {fundamentals && <FundamentalsCard data={fundamentals} />}
+          {isFund && fund && (
+            <>
+              <FundOverview fund={fund} quoteType={quote.quoteType} />
+              <FundHoldings holdings={fund.holdings} />
+              <FundWeightings sectors={fund.sectorWeightings} />
+            </>
+          )}
 
-          {earnings && !profile?.fundFamily && <EarningsCard data={earnings} />}
+          {!isFund && fundamentals && <FundamentalsCard data={fundamentals} />}
 
-          {filings && <FilingsCard data={filings} irWebsite={profile?.irWebsite} />}
+          {!isFund && earnings && <EarningsCard data={earnings} />}
+
+          {!isFund && filings && <FilingsCard data={filings} irWebsite={profile?.irWebsite} />}
 
           <PriceChart
             bars={bars ?? []}
@@ -210,22 +237,26 @@ export default function TickerResearch({ onAnalyzeInCalculator, prefillSymbol, o
             <TechnicalIndicators bars={bars} />
           )}
 
-          <TradeRecommendations
-            quote={quote}
-            bars={bars ?? []}
-            fundamentals={fundamentals ?? undefined}
-            optionsChain={optionsChain ?? undefined}
-            spyBars={spyBars ?? undefined}
-            deepFundamentals={deepFundamentals ?? undefined}
-            marketContext={marketContext ?? undefined}
-            earnings={earnings ?? undefined}
-          />
+          {!isMutualFund && (
+            <TradeRecommendations
+              quote={quote}
+              bars={bars ?? []}
+              fundamentals={fundamentals ?? undefined}
+              optionsChain={optionsChain ?? undefined}
+              spyBars={spyBars ?? undefined}
+              deepFundamentals={deepFundamentals ?? undefined}
+              marketContext={marketContext ?? undefined}
+              earnings={earnings ?? undefined}
+            />
+          )}
 
-          <OptionsChain
-            symbol={symbol}
-            currentPrice={quote.price}
-            onAnalyze={handleAnalyze}
-          />
+          {!isMutualFund && (
+            <OptionsChain
+              symbol={symbol}
+              currentPrice={quote.price}
+              onAnalyze={handleAnalyze}
+            />
+          )}
         </div>
       )}
     </div>
