@@ -2,6 +2,7 @@ import YahooFinance from 'yahoo-finance2';
 import type {
   MarketDataProvider,
   QuoteData,
+  AssetQuoteType,
   NewsItem,
   SectorPerformance,
   MoverData,
@@ -31,6 +32,16 @@ const SECTOR_ETFS: Record<string, string> = {
   'Communication Services': 'XLC',
 };
 
+const KNOWN_QUOTE_TYPES: ReadonlySet<string> = new Set([
+  'EQUITY', 'ETF', 'MUTUALFUND', 'INDEX', 'CURRENCY', 'CRYPTOCURRENCY', 'FUTURE',
+]);
+
+function mapQuoteType(raw: unknown): AssetQuoteType | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const t = raw.toUpperCase();
+  return KNOWN_QUOTE_TYPES.has(t) ? (t as AssetQuoteType) : 'OTHER';
+}
+
 function mapQuote(raw: any, symbol: string): QuoteData {
   return {
     symbol: raw.symbol ?? symbol,
@@ -48,20 +59,37 @@ function mapQuote(raw: any, symbol: string): QuoteData {
     week52High: raw.fiftyTwoWeekHigh,
     week52Low: raw.fiftyTwoWeekLow,
     avgVolume: raw.averageDailyVolume3Month,
+    quoteType: mapQuoteType(raw.quoteType),
   };
+}
+
+// Mutual funds (and occasionally other instruments) can trip yahoo-finance2's
+// zod result validation. Retry once with validation disabled — the payload is
+// still correct, just unvalidated. On a second failure (e.g. real network/404
+// error) we surface the original error.
+async function resilientQuote(symbol: string): Promise<any> {
+  try {
+    return await yahooFinance.quote(symbol);
+  } catch (err) {
+    try {
+      return await yahooFinance.quote(symbol, {}, { validateResult: false });
+    } catch {
+      throw err;
+    }
+  }
 }
 
 export class YahooFinanceProvider implements MarketDataProvider {
   name = 'yahoo-finance';
 
   async getQuote(symbol: string): Promise<QuoteData> {
-    const raw = await yahooFinance.quote(symbol);
+    const raw = await resilientQuote(symbol);
     return mapQuote(raw, symbol);
   }
 
   async getMultipleQuotes(symbols: string[]): Promise<QuoteData[]> {
     const results = await Promise.allSettled(
-      symbols.map(s => yahooFinance.quote(s))
+      symbols.map(s => resilientQuote(s))
     );
     return results
       .map((r, i) => {

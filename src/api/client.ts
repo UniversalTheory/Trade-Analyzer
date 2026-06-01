@@ -61,6 +61,7 @@ export const ticker = {
     request<import('./types').PriceBar[]>(`/ticker/${symbol}/history?range=${range}&interval=${interval}`),
   getNews: (symbol: string) => request<import('./types').NewsItem[]>(`/ticker/${symbol}/news`),
   getProfile: (symbol: string) => request<import('./types').AssetProfile>(`/ticker/${symbol}/profile`),
+  getFund: (symbol: string) => request<import('./types').FundData>(`/ticker/${symbol}/fund`),
   getFundamentals: (symbol: string) => request<import('./types').FundamentalsData>(`/ticker/${symbol}/fundamentals`),
   getDeepFundamentals: (symbol: string) =>
     request<import('./types').DeepFundamentals>(`/ticker/${symbol}/deep-fundamentals`),

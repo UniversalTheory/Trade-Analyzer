@@ -1,5 +1,16 @@
 // Normalized data types returned by all providers
 
+// Yahoo's quoteType, normalized. Drives equity-vs-fund branching in the UI.
+export type AssetQuoteType =
+  | 'EQUITY'
+  | 'ETF'
+  | 'MUTUALFUND'
+  | 'INDEX'
+  | 'CURRENCY'
+  | 'CRYPTOCURRENCY'
+  | 'FUTURE'
+  | 'OTHER';
+
 export interface QuoteData {
   symbol: string;
   name: string;
@@ -16,6 +27,31 @@ export interface QuoteData {
   week52High?: number;
   week52Low?: number;
   avgVolume?: number;
+  quoteType?: AssetQuoteType;
+}
+
+// Fund-specific research data (ETFs + mutual funds). All weights/ratios are
+// fractions (0.0783 = 7.83%), matching Yahoo's raw shapes.
+export interface FundHolding {
+  symbol: string;
+  name: string;
+  weight: number;
+}
+
+export interface FundSectorWeight {
+  sector: string; // display label, e.g. "Consumer Cyclical"
+  weight: number;
+}
+
+export interface FundData {
+  symbol: string;
+  category?: string;   // fundProfile.categoryName, e.g. "Large Blend"
+  family?: string;     // fund family / issuer
+  legalType?: string;  // "Exchange Traded Fund" | "Mutual Fund" | ...
+  expenseRatio?: number;
+  yield?: number;
+  holdings: FundHolding[];          // top 10 only (Yahoo cap)
+  sectorWeightings: FundSectorWeight[];
 }
 
 export interface NewsItem {

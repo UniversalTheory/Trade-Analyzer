@@ -1,5 +1,15 @@
 // Client-side types matching server response shapes
 
+export type AssetQuoteType =
+  | 'EQUITY'
+  | 'ETF'
+  | 'MUTUALFUND'
+  | 'INDEX'
+  | 'CURRENCY'
+  | 'CRYPTOCURRENCY'
+  | 'FUTURE'
+  | 'OTHER';
+
 export interface QuoteData {
   symbol: string;
   name: string;
@@ -16,6 +26,30 @@ export interface QuoteData {
   week52High?: number;
   week52Low?: number;
   avgVolume?: number;
+  quoteType?: AssetQuoteType;
+}
+
+// Fund-specific research data. Weights/ratios are fractions (0.0783 = 7.83%).
+export interface FundHolding {
+  symbol: string;
+  name: string;
+  weight: number;
+}
+
+export interface FundSectorWeight {
+  sector: string;
+  weight: number;
+}
+
+export interface FundData {
+  symbol: string;
+  category?: string;
+  family?: string;
+  legalType?: string;
+  expenseRatio?: number;
+  yield?: number;
+  holdings: FundHolding[];
+  sectorWeightings: FundSectorWeight[];
 }
 
 export interface NewsItem {

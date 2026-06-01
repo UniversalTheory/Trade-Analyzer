@@ -6,6 +6,28 @@ const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 const router = Router();
 
+// Yahoo returns fund sector weightings keyed by snake_case. Map to display labels.
+const SECTOR_KEY_LABELS: Record<string, string> = {
+  realestate: 'Real Estate',
+  consumer_cyclical: 'Consumer Cyclical',
+  basic_materials: 'Basic Materials',
+  consumer_defensive: 'Consumer Defensive',
+  technology: 'Technology',
+  communication_services: 'Communication Services',
+  financial_services: 'Financial Services',
+  utilities: 'Utilities',
+  industrials: 'Industrials',
+  energy: 'Energy',
+  healthcare: 'Healthcare',
+};
+
+function labelSectorKey(key: string): string {
+  return (
+    SECTOR_KEY_LABELS[key] ??
+    key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+
 // GET /api/ticker/search?q=AAPL - Symbol search / autocomplete
 router.get('/search', async (req, res) => {
   try {
@@ -118,6 +140,62 @@ router.get('/:symbol/profile', async (req, res) => {
   } catch (err: any) {
     console.error('Asset profile error:', err.message);
     res.status(500).json({ error: 'Failed to fetch asset profile' });
+  }
+});
+
+// GET /api/ticker/:symbol/fund - Fund-specific research (ETF + mutual fund)
+router.get('/:symbol/fund', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const data = await cachedCall(
+      `ticker:fund:${symbol}`,
+      TTLCache.TTL.SEARCH, // 1 hour — holdings/weightings change slowly
+      async () => {
+        // validateResult:false — mutual funds (MUTUALFUND) trip yahoo-finance2's
+        // zod validation; the payload is correct, just unvalidated.
+        const summary = await yf.quoteSummary(
+          symbol,
+          { modules: ['topHoldings', 'fundProfile', 'summaryDetail'] as any },
+          { validateResult: false },
+        );
+
+        const th = (summary as any).topHoldings ?? {};
+        const fp = (summary as any).fundProfile ?? {};
+        const sd = (summary as any).summaryDetail ?? {};
+
+        const holdings = (th.holdings ?? [])
+          .map((h: any) => ({
+            symbol: h.symbol ?? '',
+            name: h.holdingName ?? h.symbol ?? '',
+            weight: h.holdingPercent ?? 0,
+          }))
+          .filter((h: any) => h.symbol || h.name);
+
+        const sectorWeightings = (th.sectorWeightings ?? [])
+          .map((entry: any) => {
+            const pair = Object.entries(entry)[0];
+            if (!pair) return null;
+            const [key, value] = pair;
+            return { sector: labelSectorKey(key), weight: (value as number) ?? 0 };
+          })
+          .filter((s: any): s is { sector: string; weight: number } => s !== null && s.weight > 0);
+
+        return {
+          symbol,
+          category:     fp.categoryName ?? undefined,
+          family:       fp.family       ?? undefined,
+          legalType:    fp.legalType    ?? undefined,
+          expenseRatio: fp.feesExpensesInvestment?.annualReportExpenseRatio ?? undefined,
+          yield:        sd.yield ?? undefined,
+          holdings,
+          sectorWeightings,
+        };
+      },
+    );
+    res.json(data);
+  } catch (err: any) {
+    console.error('Fund data error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch fund data' });
   }
 });
 
