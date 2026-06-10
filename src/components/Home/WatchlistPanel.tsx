@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatedNumber } from '../AnimatedNumber';
 import { ticker } from '../../api/client';
 import type { QuoteData } from '../../api/types';
@@ -33,6 +33,25 @@ export default function WatchlistPanel({ refreshKey, onShowInResearch }: Props) 
   const [input, setInput] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  // In-memory only — sort resets to insertion order on reload.
+  const [chgSortDir, setChgSortDir] = useState<'asc' | 'desc' | null>(null);
+
+  function toggleChgSort() {
+    setChgSortDir(prev => (prev === 'desc' ? 'asc' : 'desc'));
+  }
+
+  const sortedSymbols = useMemo(() => {
+    if (!chgSortDir) return symbols;
+    return [...symbols].sort((a, b) => {
+      const av = quotes[a]?.changePercent;
+      const bv = quotes[b]?.changePercent;
+      // Unquoted symbols always sink to the bottom, regardless of direction.
+      if (av === undefined && bv === undefined) return 0;
+      if (av === undefined) return 1;
+      if (bv === undefined) return -1;
+      return chgSortDir === 'desc' ? bv - av : av - bv;
+    });
+  }, [symbols, quotes, chgSortDir]);
 
   const fetchQuotes = useCallback(async (syms: string[]) => {
     if (!syms.length) return;
@@ -130,10 +149,21 @@ export default function WatchlistPanel({ refreshKey, onShowInResearch }: Props) 
             <span className="ta-right">High</span>
             <span className="ta-right">Low</span>
             <span className="ta-right">Price</span>
-            <span className="ta-right">Chg%</span>
+            <span
+              className={`ta-right portfolio-sort-header${chgSortDir ? ' is-active' : ''}`}
+              onClick={toggleChgSort}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleChgSort(); }
+              }}
+            >
+              Chg%
+              <span className="portfolio-sort-arrow">{chgSortDir ? (chgSortDir === 'desc' ? '▼' : '▲') : ''}</span>
+            </span>
             <span />
           </div>
-          {symbols.map(sym => {
+          {sortedSymbols.map(sym => {
             const q = quotes[sym];
             const up = q ? q.changePercent >= 0 : null;
             const color = up === null

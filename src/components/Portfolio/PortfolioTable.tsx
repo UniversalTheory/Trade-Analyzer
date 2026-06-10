@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { AnimatedNumber } from '../AnimatedNumber';
 import EditPositionRow, { type PositionEdit } from './EditPositionRow';
 import type { PortfolioPosition } from '../../utils/portfolioStorage';
@@ -18,8 +18,64 @@ interface Props {
   onShowInResearch?: (symbol: string) => void;
 }
 
+type SortCol = 'shares' | 'trade' | 'current' | 'day' | 'pl' | 'plPct';
+type SortState = { col: SortCol; dir: 'asc' | 'desc' };
+
 export default function PortfolioTable({ positions, quotes, onRemove, onUpdate, onShowInResearch }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  // In-memory only — sort resets to insertion order on reload.
+  const [sort, setSort] = useState<SortState | null>(null);
+
+  function toggleSort(col: SortCol) {
+    setSort(prev =>
+      prev?.col === col
+        ? { col, dir: prev.dir === 'desc' ? 'asc' : 'desc' }
+        : { col, dir: 'desc' },
+    );
+  }
+
+  const sortedPositions = useMemo(() => {
+    if (!sort) return positions;
+    const valueFor = (p: PortfolioPosition): number | null => {
+      const quote = quotes[p.symbol];
+      const metrics = computePositionMetrics(p, quote?.price);
+      switch (sort.col) {
+        case 'shares':  return p.shares;
+        case 'trade':   return p.avgPrice;
+        case 'current': return quote?.price ?? null;
+        case 'day':     return quote?.changePercent ?? null;
+        case 'pl':      return metrics?.pl ?? null;
+        case 'plPct':   return metrics?.plPct ?? null;
+      }
+    };
+    return [...positions].sort((a, b) => {
+      const av = valueFor(a);
+      const bv = valueFor(b);
+      // Unpriced positions always sink to the bottom, regardless of direction.
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return sort.dir === 'desc' ? bv - av : av - bv;
+    });
+  }, [positions, quotes, sort]);
+
+  function SortHeader({ col, label }: { col: SortCol; label: string }) {
+    const active = sort?.col === col;
+    return (
+      <span
+        className={`ta-right portfolio-sort-header${active ? ' is-active' : ''}`}
+        onClick={() => toggleSort(col)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort(col); }
+        }}
+      >
+        {label}
+        <span className="portfolio-sort-arrow">{active ? (sort!.dir === 'desc' ? '▼' : '▲') : ''}</span>
+      </span>
+    );
+  }
 
   if (positions.length === 0) {
     return (
@@ -38,16 +94,16 @@ export default function PortfolioTable({ positions, quotes, onRemove, onUpdate, 
     <div className="global-table portfolio-table">
       <div className="portfolio-table-head">
         <span>Ticker</span>
-        <span className="ta-right">Shares</span>
-        <span className="ta-right">Trade $</span>
-        <span className="ta-right">Current $</span>
-        <span className="ta-right">Day Change</span>
-        <span className="ta-right">P/L $</span>
-        <span className="ta-right">P/L %</span>
+        <SortHeader col="shares" label="Shares" />
+        <SortHeader col="trade" label="Trade $" />
+        <SortHeader col="current" label="Current $" />
+        <SortHeader col="day" label="Day Change" />
+        <SortHeader col="pl" label="P/L $" />
+        <SortHeader col="plPct" label="P/L %" />
         <span />
       </div>
 
-      {positions.map(p => {
+      {sortedPositions.map(p => {
         if (editingId === p.id && (p.type === 'stock' || p.type === 'fund')) {
           return (
             <EditPositionRow

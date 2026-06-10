@@ -1531,6 +1531,25 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* Sortable column headers */
+.portfolio-sort-header {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.1s;
+}
+
+.portfolio-sort-header:hover,
+.portfolio-sort-header.is-active {
+  color: var(--text-primary);
+}
+
+.portfolio-sort-arrow {
+  display: inline-block;
+  width: 0.9em;
+  margin-left: 2px;
+  font-size: 9px;
+}
+
 .portfolio-table-row {
   padding: 6px 4px;
   border-radius: 6px;
